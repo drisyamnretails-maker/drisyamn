@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.drisyamn_siliguri.twa",
+        "sha256_cert_fingerprints": ["AD:BE:79:E2:91:02:28:1A:36:E0:D9:49:1D:30:90:4C:D7:16:29:4E:AC:67:C4:91:50:14:F3:04:C9:79:F5:33"]
+      }
+    }]
