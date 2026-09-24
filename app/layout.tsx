@@ -14,8 +14,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Drisyamn",
-  description: "Discover, Showcase, Connect",
+  title: "Drisyamn Siliguri",
+  description: "Discover, Search, Explore, Connect, Promote, Showcase in Siliguri",
+  manifest: "/manifest.json",
+  themeColor: "#ff6b00",
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-512.png",
+  },
 };
 
 export default function RootLayout({
