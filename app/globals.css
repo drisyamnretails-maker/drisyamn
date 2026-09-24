@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --sand: #F6F1EB;
+  --teal: #0F4C5C;
+  --coral: #FF7A45;
+  --white: #FFFFFF;
+}
+
+html, body {
+  height: 100%;
+  background-color: var(--sand);
+  color: var(--teal);
+}
+
+body {
+  font-family: var(--font-inter), sans-serif;
+}
+
+/* Brand Drisyamn ke liye - yehi weight 700 lock karega */
+.font-brand {
+  font-family: var(--font-fraunces), serif;
+  font-weight: 700;
+  color: var(--teal);
+}
