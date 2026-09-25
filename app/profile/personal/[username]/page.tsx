@@ -1,8 +1,10 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
+import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-export default function ProfilePage({ params }: { params: { username: string } }) {
+export default function ProfilePage() {
+  const { username } = useParams() as { username: string }
   const [profile, setProfile] = useState<any>(null)
   const [me, setMe] = useState<any>(null)
   const [stats, setStats] = useState({ posts: 0, friends: 0 })
@@ -13,7 +15,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
   const fileRef = useRef<HTMLInputElement>(null)
   const [fileType, setFileType] = useState<'photo'|'video'|'cover'>('photo')
 
-  useEffect(()=>{ load() }, [])
+  useEffect(()=>{ if(username) load() }, [username])
 
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -21,14 +23,14 @@ export default function ProfilePage({ params }: { params: { username: string } }
       const { data: my } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setMe(my)
     }
-    const { data: p } = await supabase.from('profiles').select('*').eq('username', params.username).single()
+    const { data: p } = await supabase.from('profiles').select('*').eq('username', username).single()
     if(!p) return
     setProfile(p)
 
     const [postC, friendsC, relation, allPosts] = await Promise.all([
       supabase.from('posts').select('id', { count:'exact', head:true }).eq('user_id', p.id),
       supabase.from('friendships').select('id', { count:'exact', head:true }).or(`user1.eq.${p.id},user2.eq.${p.id}`).eq('status','friends'),
-      user? supabase.from('friendships').select('*').or(`and(user1.eq.${user.id},user2.eq.${p.id}),and(user1.eq.${p.id},user2.eq.${user.id})`).maybeSingle() : { data:null },
+      user? supabase.from('friendships').select('*').or(`and(user1.eq.${user.id},user2.eq.${p.id}),and(user1.eq.${p.id},user2.eq.${user.id})`).maybeSingle() : { data:null } as any,
       supabase.from('posts').select('*').eq('user_id', p.id).order('created_at',{ascending:false})
     ])
 
@@ -91,7 +93,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
     setUploading(false)
   }
 
-  if(!profile) return <div className="min-h-screen bg-[#E8DCC5] flex items-center justify-center font-black">Loading...</div>
+  if(!profile) return <div className="min-h-screen bg-[#E8DCC5] flex items-center justify-center font-black">Loading {username}...</div>
 
   const isOwn = me?.id===profile.id
 
@@ -100,7 +102,6 @@ export default function ProfilePage({ params }: { params: { username: string } }
       <input ref={fileRef} type="file" hidden accept={fileType==='video'?'video/*':'image/*'} onChange={onFileChange} />
 
       <div className="max-w-[480px] mx-auto">
-        {/* COVER - SIDE EDIT WORKING */}
         <div className="p-3">
           <div className="relative h-[260px] rounded-[32px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.15)] bg-[#EFE9DE]">
             <img src={profile.cover_url || `https://picsum.photos/seed/${profile.id}/800/400`} className="w-full h-full object-cover" />
@@ -121,7 +122,6 @@ export default function ProfilePage({ params }: { params: { username: string } }
         </div>
 
         <div className="px-3 space-y-3 mt-2">
-          {/* PROFILE CARD */}
           <div className="bg-white rounded-[32px] p-6 pt-20 shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white">
             <h1 className="text-[32px] font-black tracking-tight text-center leading-none">{profile.full_name}</h1>
             <p className="text-center text-[13px] font-bold tracking-widest opacity-40 uppercase mt-2">@{profile.username} • Siliguri</p>
@@ -147,14 +147,12 @@ export default function ProfilePage({ params }: { params: { username: string } }
             </div>
           </div>
 
-          {/* TABS WORKING */}
           <div className="flex gap-2 overflow-x-auto scrollbar-hide py-1">
             {['Posts','About','Photos','Videos','Friends'].map(t=>(
               <button key={t} onClick={()=>setTab(t)} className={`h-11 px-6 rounded-full font-black text-[13px] whitespace-nowrap ${tab===t?'bg-black text-white shadow-md':'bg-white border border-black/5'}`}>{t}</button>
             ))}
           </div>
 
-          {/* CONTENT */}
           {tab==='Posts' && (
             <div className="space-y-3">
               {isOwn && (
@@ -176,7 +174,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
 
           {tab==='Photos' && (
             <div className="grid grid-cols-3 gap-1.5 rounded-[24px] overflow-hidden">
-              {posts.filter(p=>p.type!=='video').map(p=><img key={p.id} src={p.image_url} className="aspect-square object-cover" />)}
+              {posts.filter(p=>p.type!=='video').map(p=><img key={p.id} src={p.image_url} className="aspect-square object-cover" alt="" />)}
             </div>
           )}
 
@@ -196,7 +194,6 @@ export default function ProfilePage({ params }: { params: { username: string } }
         </div>
       </div>
 
-      {/* BOTTOM ACTION BAR - PHOTO VIDEO WORKING */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-[#1a120e] rounded-full p-2 flex gap-2 shadow-[0_20px_40px_rgba(0,0,0,0.3)]">
         <button onClick={()=>triggerUpload('photo')} className="h-11 px-6 rounded-full bg-white text-black font-black text-[13px]">📷 Photo</button>
         <button onClick={()=>triggerUpload('video')} className="h-11 px-6 rounded-full bg-white/20 text-white font-black text-[13px]">▶ Video</button>
