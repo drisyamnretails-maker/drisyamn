@@ -38,13 +38,13 @@ export default function LoginPage() {
       let emailToUse = id.toLowerCase();
       const cleanPhone = id.replace(/\D/g, '');
 
-      // STEP 1: Agar user ne mobile ya username dala hai toh email nikalo
       if (!emailToUse.includes('@')) {
+        // FIX: phone/email/username sabse email nikalna
         const { data: profile } = await supabase
-         .from('profiles')
-         .select('email, phone, username')
-         .or(`phone.eq.${cleanPhone},username.eq.${emailToUse},email.eq.${emailToUse}`)
-         .maybeSingle();
+        .from('profiles')
+        .select('email, phone, username')
+        .or(`phone.eq.${id},phone.eq.${cleanPhone},username.eq.${emailToUse},email.eq.${emailToUse}`)
+        .maybeSingle();
 
         if (!profile?.email) {
           throw new Error("User not found - Please Sign up first");
@@ -52,7 +52,6 @@ export default function LoginPage() {
         emailToUse = profile.email;
       }
 
-      // STEP 2: Ab asli Supabase Auth se login karo (yehi permanent hai)
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: emailToUse,
         password: password,
@@ -60,12 +59,11 @@ export default function LoginPage() {
 
       if (authError) throw authError;
 
-      // STEP 3: Profile ka data lo homefeed ke liye
       const { data: fullProfile } = await supabase
-       .from('profiles')
-       .select('*')
-       .eq('id', authData.user.id)
-       .single();
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
 
       localStorage.setItem('currentUser', JSON.stringify(fullProfile));
       localStorage.setItem('username', fullProfile.username);
