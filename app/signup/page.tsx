@@ -22,34 +22,53 @@ export default function SignupPage() {
     if (password!== confirm) { alert("Password match nahi ho raha"); return; }
 
     setLoading(true);
-    const isEmail = identifier.includes("@");
-    const email = isEmail? identifier : `${identifier}@drisyamn.local`;
-    // username banate hain - unique
-    const username = name.toLowerCase().replace(/\s+/g,'') + Math.floor(Math.random()*1000);
+    try {
+      const isEmail = identifier.includes("@");
+      const cleanIdentifier = identifier.trim().toLowerCase();
+      const phone = isEmail? null : cleanIdentifier.replace(/\D/g, '');
+      // Auth ke liye email chahiye, agar mobile hai toh fake email banao
+      const authEmail = isEmail? cleanIdentifier : `${phone}@drisyamn.local`;
 
-    const { data, error } = await supabase.from('profiles').insert([
-      {
-        username: username,
-        display_name: name,
-        email: email,
-        password: password, // Note: production me hash karna
-        bio: `Hi, I am ${name}`,
-        avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`,
-      }
-    ]).select().single();
+      const username = name.toLowerCase().replace(/\s+/g,'') + Math.floor(Math.random()*900 + 100);
 
-    setLoading(false);
+      // STEP 1: Supabase Auth me user banao - YE SABSE IMPORTANT HAI
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: authEmail,
+        password: password,
+      });
 
-    if (error) {
-      alert("Error: " + error.message);
-      return;
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("User create nahi hua");
+
+      // STEP 2: Ab profiles table me banao
+      const { data: profile, error: profileError } = await supabase.from('profiles').insert([
+        {
+          id: authData.user.id, // Auth wali ID link karo
+          username: username,
+          full_name: name, // tera column display_name nahi full_name hai
+          display_name: name,
+          email: authEmail,
+          phone: phone,
+          bio: `Hi, I am ${name}`,
+          avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${name}`,
+          role: 'personal',
+          onboarding_done: false
+        }
+      ]).select().single();
+
+      if (profileError) throw profileError;
+
+      // Local me save (optional, session se kaam chalega)
+      localStorage.setItem('currentUser', JSON.stringify(profile));
+      localStorage.setItem('username', profile.username);
+
+      router.push("/roles"); // Ya /onboarding/role
+
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    } finally {
+      setLoading(false);
     }
-
-    // save current user
-    localStorage.setItem('currentUser', JSON.stringify(data));
-    localStorage.setItem('username', data.username);
-
-    router.push("/roles");
   };
 
   const labelStyle = { color: "#0F1A3A", fontSize: "15px", fontWeight: 700 } as const;

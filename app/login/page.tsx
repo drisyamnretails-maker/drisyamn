@@ -34,30 +34,56 @@ export default function LoginPage() {
     }
     setLoading(true);
 
-    // SUPABASE LOGIN - check profiles table
-    const { data, error } = await supabase
-     .from('profiles')
-     .select('*')
-     .or(`username.eq.${id},email.eq.${id}`)
-     .single();
+    try {
+      let emailToUse = id.toLowerCase();
+      const cleanPhone = id.replace(/\D/g, '');
 
-    setLoading(false);
+      // STEP 1: Agar user ne mobile ya username dala hai toh email nikalo
+      if (!emailToUse.includes('@')) {
+        const { data: profile } = await supabase
+         .from('profiles')
+         .select('email, phone, username')
+         .or(`phone.eq.${cleanPhone},username.eq.${emailToUse},email.eq.${emailToUse}`)
+         .maybeSingle();
 
-    if (error ||!data) {
-      setErr({ id: "User not found - Please Sign up first", pass: "" });
+        if (!profile?.email) {
+          throw new Error("User not found - Please Sign up first");
+        }
+        emailToUse = profile.email;
+      }
+
+      // STEP 2: Ab asli Supabase Auth se login karo (yehi permanent hai)
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: emailToUse,
+        password: password,
+      });
+
+      if (authError) throw authError;
+
+      // STEP 3: Profile ka data lo homefeed ke liye
+      const { data: fullProfile } = await supabase
+       .from('profiles')
+       .select('*')
+       .eq('id', authData.user.id)
+       .single();
+
+      localStorage.setItem('currentUser', JSON.stringify(fullProfile));
+      localStorage.setItem('username', fullProfile.username);
+
+      router.push("/homefeed");
+
+    } catch (e: any) {
+      if (e.message.includes("not found") || e.message.includes("Sign up")) {
+        setErr({ id: "User not found - Please Sign up first", pass: "" });
+      } else if (e.message.includes("Invalid login")) {
+        setErr({ id: "", pass: "Wrong password" });
+      } else {
+        setErr({ id: e.message, pass: "" });
+      }
       triggerShake();
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    // Simple password check (agar tu hash use karta hai to yahan change karna)
-    // For now, bio field me password store kiya hai toh check kar le
-    // Better: signup me password field add karna padega
-
-    // Save logged in user
-    localStorage.setItem('currentUser', JSON.stringify(data));
-    localStorage.setItem('username', data.username);
-
-    router.push("/homefeed");
   };
 
   const labelStyle = { color: LABEL_BLACK, fontSize: "16px", fontWeight: 700 } as const;
