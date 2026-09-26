@@ -40,3 +40,6 @@ export default function RootLayout({
     </html>
   );
 }
+export const viewport = {
+  themeColor: "#EDE6D3",
+}
