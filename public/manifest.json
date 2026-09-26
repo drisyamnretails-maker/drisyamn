@@ -1,11 +1,11 @@
 {
   "name": "Drisyamn Siliguri",
   "short_name": "Drisyamn",
-  "description": "Discover, Explore and Connect Siliguri's best shops and services",
+  "description": "Discover, Explore and Connect Siliguri",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ff6b00",
+  "background_color": "#EDE6D3",
+  "theme_color": "#EDE6D3",
   "icons": [
     {
       "src": "/icon-192.png",
