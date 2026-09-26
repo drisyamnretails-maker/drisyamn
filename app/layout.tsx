@@ -18,3 +18,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+export const viewport: Viewport = {
+  themeColor: "#EDE6D3",
+  backgroundColor: "#EDE6D3",
+  viewportFit: "cover",
+};
