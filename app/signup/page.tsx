@@ -33,12 +33,12 @@ export default function SignupPage() {
   const handleSignup = async () => {
     setErr("");
 
-    if (!name.trim() || !contact.trim() || !password || !confirm) {
+    if (!name.trim() ||!contact.trim() ||!password ||!confirm) {
       setErr("All fields are required");
       triggerShake();
       return;
     }
-    if (password !== confirm) {
+    if (password!== confirm) {
       setErr("Passwords do not match");
       triggerShake();
       return;
@@ -59,12 +59,14 @@ export default function SignupPage() {
     try {
       const isEmail = contact.includes("@");
       const cleanContact = contact.trim().toLowerCase();
-      
-      const digitsOnly = contact.replace(/\D/g, "");
-      const emailToUse = isEmail ? cleanContact : `user_${digitsOnly}@gmail.com`;
-      const phoneVal = isEmail ? null : contact.trim();
 
-      const username = (isEmail ? cleanContact.split("@")[0] : `user_${digitsOnly}`) + "_" + Date.now().toString().slice(-4);
+      const digitsOnly = contact.replace(/\D/g, "");
+      const emailToUse = isEmail? cleanContact : `user_${digitsOnly}@gmail.com`;
+      const phoneVal = isEmail? null : contact.trim();
+
+      // Username = user ke naam/email se banega + 4 digit
+      const baseName = name.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+      const username = `${baseName}_${Date.now().toString().slice(-4)}`;
 
       // 1. Create User in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -112,7 +114,8 @@ export default function SignupPage() {
           router.push(`/profile/service/${username}`);
           break;
         default:
-          router.push("/homefeed");
+          router.push(`/profile/personal/${username}`);
+          break;
       }
     } catch (e: any) {
       setErr(e.message || "An error occurred during signup");
@@ -131,7 +134,7 @@ export default function SignupPage() {
     >
       <div
         className={`w-full max-w-[400px] bg-[#FFFEFB] rounded-[24px] px-6 py-6 mb-8 shadow-[0_0_0_8px_#fff,0_20px_40px_rgba(0,0,0,0.1)] ${
-          shake ? "animate-[shake_0.4s_ease]" : ""
+          shake? "animate-[shake_0.4s_ease]" : ""
         }`}
       >
         <div className="text-center">
@@ -189,7 +192,7 @@ export default function SignupPage() {
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              type={show ? "text" : "password"}
+              type={show? "text" : "password"}
               placeholder="Min 6 characters"
               className="w-full h-[52px] px-5 pr-12 rounded-[14px] bg-[#F6F1E6] border border-black/10 text-[15.5px] font-medium outline-none"
               style={{ color: "#111827" }}
@@ -200,7 +203,7 @@ export default function SignupPage() {
               className="absolute right-4 top-1/2 -translate-y-1/2"
               style={{ color: PURE_BLACK }}
             >
-              {show ? "🙈" : "👁️"}
+              {show? "🙈" : "👁️"}
             </button>
           </div>
 
@@ -247,7 +250,7 @@ export default function SignupPage() {
               boxShadow: "0 0 0 6px white, 0 10px 24px rgba(232,106,51,0.35)",
             }}
           >
-            {loading ? "CREATING..." : "CREATE ACCOUNT"}
+            {loading? "CREATING..." : "CREATE ACCOUNT"}
           </button>
 
           <p className="mt-6 text-center text-[14px]">
