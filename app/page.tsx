@@ -15,6 +15,16 @@ const prettyBox: React.CSSProperties = {
 export default function HomePage() {
   const router = useRouter();
 
+  const handleCardClick = (label: string) => {
+    // Abhi ke liye sab personal profile pe jayega
+    // Baad me har label ka alag route bana dena
+    if (label === "Discover" || label === "Connect") {
+      router.push("/profile/personal/drisyamn");
+    } else {
+      router.push("/profile/personal/drisyamn");
+    }
+  };
+
   const items = [
     { label: "Discover", icon: DiscoverIcon },
     { label: "Search", icon: SearchIcon },
@@ -26,7 +36,6 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center py-10 px-4" style={{background:PAGE_BG}}>
-      {/* HEADER BOX */}
       <div className="w-full max-w-[620px] rounded-[22px] p-7 text-center" style={prettyBox}>
         <h1 className="font-serif text-[42px] md:text-[48px] font-bold leading-none" style={{color:DARK}}>
           Drisyamn
@@ -36,11 +45,11 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* GRID - HAR BOX ME MOTI WHITE BORDER */}
       <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-[360px] md:max-w-[600px]">
         {items.map(({ label, icon: Icon }) => (
           <div
             key={label}
+            onClick={() => handleCardClick(label)}
             className="group rounded-[22px] h-[110px] md:h-[124px] flex flex-col items-center justify-center cursor-pointer hover:-translate-y-1 transition-all duration-300"
             style={prettyBox}
           >
@@ -54,9 +63,8 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* BUTTON */}
       <button
-        onClick={() => router.push("/login")}
+        onClick={() => router.push("/profile/personal/drisyamn")}
         className="mt-10 w-full max-w-[360px] md:max-w-[240px] h-[52px] rounded-full text-white text-[13px] font-black tracking-[0.14em] hover:-translate-y-0.5 active:scale-[0.98] transition-all"
         style={{background:ORANGE, boxShadow:"0 0 0 6px white, 0 10px 28px rgba(232,106,51,0.4)"}}
       >
@@ -68,6 +76,7 @@ export default function HomePage() {
   );
 }
 
+// Icons same as yours...
 function DiscoverIcon() {
   return (
     <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1F3A4A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
