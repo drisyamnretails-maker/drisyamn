@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -26,55 +27,78 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setErr({ id: "", pass: "" });
     const id = identifier.trim();
-    if (!id ||!password) {
-      if (!id) setErr((p) => ({...p, id: "Enter email or mobile number" }));
-      if (!password) setErr((p) => ({...p, pass: "Please enter your password" }));
+
+    if (!id || !password) {
+      if (!id) setErr((p) => ({ ...p, id: "Enter email or mobile number" }));
+      if (!password) setErr((p) => ({ ...p, pass: "Please enter your password" }));
       triggerShake();
       return;
     }
+
     setLoading(true);
 
     try {
       let emailToUse = id.toLowerCase();
-      const cleanPhone = id.replace(/\D/g, '');
+      const cleanPhone = id.replace(/\D/g, "");
 
-      if (!emailToUse.includes('@')) {
-        // FIX: phone/email/username sabse email nikalna
-        const { data: profile } = await supabase
-        .from('profiles')
-        .select('email, phone, username')
-        .or(`phone.eq.${id},phone.eq.${cleanPhone},username.eq.${emailToUse},email.eq.${emailToUse}`)
-        .maybeSingle();
+      // If the user didn't enter a standard email (contains @)
+      if (!emailToUse.includes("@")) {
+        const phoneEmailVariant = `user_${cleanPhone}@gmail.com`;
 
-        if (!profile?.email) {
-          throw new Error("User not found - Please Sign up first");
+        // Search profiles table by phone, username, or generated email
+        const { data: profiles, error: profileErr } = await supabase
+          .from("profiles")
+          .select("email")
+          .or(`phone.eq.${id},phone.eq.${cleanPhone},username.eq.${emailToUse},email.eq.${emailToUse},email.eq.${phoneEmailVariant}`)
+          .limit(1);
+
+        if (profileErr || !profiles || profiles.length === 0) {
+          // Fallback check: directly use constructed phone email if profile lookup fails
+          if (cleanPhone.length >= 10) {
+            emailToUse = phoneEmailVariant;
+          } else {
+            throw new Error("User not found - Please Sign up first");
+          }
+        } else {
+          emailToUse = profiles[0].email;
         }
-        emailToUse = profile.email;
       }
 
+      // Attempt Supabase Authentication
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: emailToUse,
         password: password,
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        if (authError.message.toLowerCase().includes("invalid login credentials")) {
+          throw new Error("Wrong password");
+        }
+        throw authError;
+      }
 
+      // Fetch user profile after successful login
       const { data: fullProfile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single();
+        .from("profiles")
+        .select("*")
+        .eq("id", authData.user.id)
+        .maybeSingle();
 
-      localStorage.setItem('currentUser', JSON.stringify(fullProfile));
-      localStorage.setItem('username', fullProfile.username);
+      if (fullProfile) {
+        localStorage.setItem("currentUser", JSON.stringify(fullProfile));
+        localStorage.setItem("username", fullProfile.username || "");
+      }
 
       router.push("/homefeed");
-
     } catch (e: any) {
-      if (e.message.includes("not found") || e.message.includes("Sign up")) {
-        setErr({ id: "User not found - Please Sign up first", pass: "" });
-      } else if (e.message.includes("Invalid login")) {
+      if (e.message.includes("Wrong password")) {
         setErr({ id: "", pass: "Wrong password" });
+      } else if (
+        e.message.includes("not found") ||
+        e.message.includes("Sign up") ||
+        e.message.includes("Invalid login")
+      ) {
+        setErr({ id: "User not found - Please Sign up first", pass: "" });
       } else {
         setErr({ id: e.message, pass: "" });
       }
@@ -87,13 +111,28 @@ export default function LoginPage() {
   const labelStyle = { color: LABEL_BLACK, fontSize: "16px", fontWeight: 700 } as const;
 
   return (
-    <div className="min-h-[100vh] w-full flex items-start justify-center p-4 pt-8 overflow-y-auto" style={{background:PAGE_BG}}>
-      <div className={`w-full max-w-[400px] bg-[#FFFEFB] rounded-[24px] px-6 py-6 mb-8 shadow-[0_0_0_8px_#fff,0_20px_40px_rgba(0,0,0,0.1)] ${shake? "animate-[shake_0.4s_ease]" : ""}`}>
-
+    <div
+      className="min-h-[100vh] w-full flex items-start justify-center p-4 pt-8 overflow-y-auto"
+      style={{ background: PAGE_BG }}
+    >
+      <div
+        className={`w-full max-w-[400px] bg-[#FFFEFB] rounded-[24px] px-6 py-6 mb-8 shadow-[0_0_0_8px_#fff,0_20px_40px_rgba(0,0,0,0.1)] ${
+          shake ? "animate-[shake_0.4s_ease]" : ""
+        }`}
+      >
         <div className="text-center">
-          <h1 className="font-serif leading-none" style={{color: PURE_BLACK, fontSize: "44px", fontWeight: 800, letterSpacing: "-0.5px"}}>Drisyamn</h1>
-          <p className="mt-1" style={{color: "#4B5563", fontSize: "15px", fontWeight: 600}}>Discover everything around you</p>
-          <h2 className="mt-6" style={{color: PURE_BLACK, fontSize: "19px", fontWeight: 700}}>Welcome back</h2>
+          <h1
+            className="font-serif leading-none"
+            style={{ color: PURE_BLACK, fontSize: "44px", fontWeight: 800, letterSpacing: "-0.5px" }}
+          >
+            Drisyamn
+          </h1>
+          <p className="mt-1" style={{ color: "#4B5563", fontSize: "15px", fontWeight: 600 }}>
+            Discover everything around you
+          </p>
+          <h2 className="mt-6" style={{ color: PURE_BLACK, fontSize: "19px", fontWeight: 700 }}>
+            Welcome back
+          </h2>
         </div>
 
         <div className="mt-6">
@@ -103,53 +142,87 @@ export default function LoginPage() {
             onChange={(e) => setIdentifier(e.target.value)}
             placeholder="you@example.com or 9876543210"
             className="mt-2 w-full h-[52px] px-5 rounded-[14px] bg-[#F6F1E6] border border-black/10 text-[15.5px] font-medium outline-none focus:bg-white focus:border-[#E86A33]/40 focus:shadow-[0_0_0_4px_rgba(232,106,51,0.15)] placeholder:text-[#4B5563] placeholder:text-[15.5px] placeholder:font-medium transition-all"
-            style={{color: "#111827"}}
+            style={{ color: "#111827" }}
           />
-          {err.id && <div className="mt-2 px-4 py-2.5 rounded-[10px] bg-[#F6F1E6] text-[13px] font-bold border border-black/5" style={{color: PURE_BLACK}}>{err.id}</div>}
+          {err.id && (
+            <div
+              className="mt-2 px-4 py-2.5 rounded-[10px] bg-[#F6F1E6] text-[13px] font-bold border border-black/5 text-red-600"
+            >
+              {err.id}
+            </div>
+          )}
 
-          <label className="mt-5 block" style={labelStyle}>Password</label>
+          <label className="mt-5 block" style={labelStyle}>
+            Password
+          </label>
           <div className="relative mt-2">
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              type={show? "text" : "password"}
+              type={show ? "text" : "password"}
               placeholder="Enter your password"
-              onKeyDown={(e)=> e.key==='Enter' && handleLogin()}
+              onKeyDown={(e) => e.key === "Enter" && handleLogin()}
               className="w-full h-[52px] px-5 pr-12 rounded-[14px] bg-[#F6F1E6] border border-black/10 text-[15.5px] font-medium outline-none focus:bg-white focus:border-[#E86A33]/40 focus:shadow-[0_0_0_4px_rgba(232,106,51,0.15)] placeholder:text-[#4B5563] placeholder:text-[15.5px] placeholder:font-medium transition-all"
-              style={{color: "#111827"}}
+              style={{ color: "#111827" }}
             />
-            <button onClick={() => setShow(!show)} type="button" className="absolute right-4 top-1/2 -translate-y-1/2 hover:opacity-80" style={{color: PURE_BLACK}}>
-              {show? "🙈" : "👁️"}
+            <button
+              onClick={() => setShow(!show)}
+              type="button"
+              className="absolute right-4 top-1/2 -translate-y-1/2 hover:opacity-80"
+              style={{ color: PURE_BLACK }}
+            >
+              {show ? "🙈" : "👁️"}
             </button>
           </div>
-          {err.pass && <div className="mt-2 px-4 py-2.5 rounded-[10px] bg-[#F6F1E6] text-[13px] font-bold border border-black/5" style={{color: PURE_BLACK}}>{err.pass}</div>}
+          {err.pass && (
+            <div
+              className="mt-2 px-4 py-2.5 rounded-[10px] bg-[#F6F1E6] text-[13px] font-bold border border-black/5 text-red-600"
+            >
+              {err.pass}
+            </div>
+          )}
 
           <div className="mt-3 text-right">
-            <Link href="/forgot-password" className="text-[13px] font-bold hover:underline" style={{color:ORANGE}}>Forgot password?</Link>
+            <Link href="/forgot-password" className="text-[13px] font-bold hover:underline" style={{ color: ORANGE }}>
+              Forgot password?
+            </Link>
           </div>
 
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="mt-7 w-full h-[52px] rounded-full text-white text-[14px] font-black tracking-[0.08em] uppercase hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-70 transition-all flex items-center justify-center"
-            style={{background:ORANGE, boxShadow:"0 0 0 6px white, 0 10px 24px rgba(232,106,51,0.35)"}}
+            className="mt-7 w-full h-[52px] rounded-full text-white text-[14px] font-black tracking-[0.08em] uppercase hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-70 transition-all flex items-center justify-center cursor-pointer"
+            style={{ background: ORANGE, boxShadow: "0 0 0 6px white, 0 10px 24px rgba(232,106,51,0.35)" }}
           >
-            {loading? (
+            {loading ? (
               <span className="flex gap-1">
                 <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:-0.3s]"></span>
                 <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:-0.15s]"></span>
                 <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></span>
               </span>
-            ) : "LOG IN"}
+            ) : (
+              "LOG IN"
+            )}
           </button>
 
           <p className="mt-6 text-center text-[14px]">
-            <span className="font-medium" style={{color: "#6B7280"}}>Don't have an account?</span> <Link href="/signup" className="font-bold hover:underline" style={{color:ORANGE}}>Sign up</Link>
+            <span className="font-medium" style={{ color: "#6B7280" }}>
+              Don't have an account?
+            </span>{" "}
+            <Link href="/signup" className="font-bold hover:underline" style={{ color: ORANGE }}>
+              Sign up
+            </Link>
           </p>
         </div>
       </div>
 
-      <style jsx>{`@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}`}</style>
+      <style jsx>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-4px); }
+          40%, 80% { transform: translateX(4px); }
+        }
+      `}</style>
     </div>
   );
 }
