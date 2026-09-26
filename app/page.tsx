@@ -15,16 +15,6 @@ const prettyBox: React.CSSProperties = {
 export default function HomePage() {
   const router = useRouter();
 
-  const handleCardClick = (label: string) => {
-    // Abhi ke liye sab personal profile pe jayega
-    // Baad me har label ka alag route bana dena
-    if (label === "Discover" || label === "Connect") {
-      router.push("/profile/personal/drisyamn");
-    } else {
-      router.push("/profile/personal/drisyamn");
-    }
-  };
-
   const items = [
     { label: "Discover", icon: DiscoverIcon },
     { label: "Search", icon: SearchIcon },
@@ -47,82 +37,27 @@ export default function HomePage() {
 
       <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-[360px] md:max-w-[600px]">
         {items.map(({ label, icon: Icon }) => (
-          <div
-            key={label}
-            onClick={() => handleCardClick(label)}
-            className="group rounded-[22px] h-[110px] md:h-[124px] flex flex-col items-center justify-center cursor-pointer hover:-translate-y-1 transition-all duration-300"
-            style={prettyBox}
-          >
-            <div className="group-hover:scale-110 group-hover:rotate-[3deg] transition-transform duration-300">
-              <Icon />
-            </div>
-            <span className="mt-3 text-[13px] md:text-[14px] font-bold" style={{color:DARK}}>
-              {label}
-            </span>
+          <div key={label} className="group rounded-[22px] h-[110px] md:h-[124px] flex flex-col items-center justify-center" style={prettyBox}>
+            <Icon />
+            <span className="mt-3 text-[13px] font-bold" style={{color:DARK}}>{label}</span>
           </div>
         ))}
       </div>
 
       <button
-        onClick={() => router.push("/profile/personal/drisyamn")}
-        className="mt-10 w-full max-w-[360px] md:max-w-[240px] h-[52px] rounded-full text-white text-[13px] font-black tracking-[0.14em] hover:-translate-y-0.5 active:scale-[0.98] transition-all"
+        onClick={() => router.push("/login")}
+        className="mt-10 w-full max-w-[360px] md:max-w-[240px] h-[52px] rounded-full text-white text-[13px] font-black tracking-[0.14em]"
         style={{background:ORANGE, boxShadow:"0 0 0 6px white, 0 10px 28px rgba(232,106,51,0.4)"}}
       >
         GET STARTED
       </button>
-
       <div className="mt-6 text-[11px] opacity-50">Matigara • Siliguri • Since 2026</div>
     </main>
   );
 }
-
-// Icons same as yours...
-function DiscoverIcon() {
-  return (
-    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1F3A4A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 21s-6-5.373-6-10a6 6 0 0 1 12 0c0 4.627-6 10-6 10z" />
-      <circle cx="12" cy="11" r="2" />
-    </svg>
-  );
-}
-function SearchIcon() {
-  return (
-    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1F3A4A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="6" />
-      <path d="m20 20-3.5-3.5" />
-    </svg>
-  );
-}
-function ExploreIcon() {
-  return (
-    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1F3A4A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
-  );
-}
-function ConnectIcon() {
-  return (
-    <svg width="30" height="30" viewBox="0 0 24 24" fill="#1F3A4A">
-      <circle cx="8" cy="8" r="4" />
-      <path d="M2 18c0-2.5 2-4.5 6-4.5s6 2 6 4.5v1H2v-1z" />
-      <circle cx="16" cy="8" r="4" />
-      <path d="M14 18c0-2.5 2-4.5 6-4.5s6 2 6 4.5v1h-12v-1z" transform="translate(-2 0)" />
-    </svg>
-  );
-}
-function PromoteIcon() {
-  return (
-    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1F3A4A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 11l18-5v12L3 13v-2z" />
-      <path d="M11.5 16.5a2.5 2.5 0 0 1 0 4" />
-    </svg>
-  );
-}
-function ShowcaseIcon() {
-  return (
-    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1F3A4A" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 16.8 6.4 19.2l1.1-6.2L3 8.6l6.2-.9L12 2z" />
-    </svg>
-  );
-}
+function DiscoverIcon(){return(<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1F3A4A" strokeWidth="1.6"><path d="M12 21s-6-5.373-6-10a6 6 0 0 1 12 0c0 4.627-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></svg>)}
+function SearchIcon(){return(<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1F3A4A" strokeWidth="1.6"><circle cx="11" cy="11" r="6"/><path d="m20 20-3.5-3.5"/></svg>)}
+function ExploreIcon(){return(<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1F3A4A" strokeWidth="1.6"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>)}
+function ConnectIcon(){return(<svg width="30" height="30" viewBox="0 0 24 24" fill="#1F3A4A"><circle cx="8" cy="8" r="4"/><path d="M2 18c0-2.5 2-4.5 6-4.5s6 2 6 4.5v1H2v-1z"/><circle cx="16" cy="8" r="4"/><path d="M14 18c0-2.5 2-4.5 6-4.5s6 2 6 4.5v1h-12v-1z" transform="translate(-2 0)"/></svg>)}
+function PromoteIcon(){return(<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1F3A4A" strokeWidth="1.6"><path d="M3 11l18-5v12L3 13v-2z"/></svg>)}
+function ShowcaseIcon(){return(<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1F3A4A" strokeWidth="1.6"><path d="M12 2l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 16.8 6.4 19.2l1.1-6.2L3 8.6l6.2-.9L12 2z"/></svg>)}
