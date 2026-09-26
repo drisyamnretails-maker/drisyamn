@@ -10,11 +10,9 @@
 }
 
 html, body {
-  height: 100%;
-  background-color: var(--sand);
-  color: var(--teal);
+  background: #EDE6D3 !important;
+  background-color: #EDE6D3 !important;
 }
-
 body {
   font-family: var(--font-inter), sans-serif;
 }
