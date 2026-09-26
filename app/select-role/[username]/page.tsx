@@ -2,16 +2,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-const C = {
-  bg: "#EDE6D3",
-  white: "#FFFFFF",
-  orange: "#E86A33",
-  black: "#1E293B",
-  gray: "#64748B",
-  light: "#94A3B8",
-  green: "#22C55E",
-  tagBg: "#F8F5EE",
-};
+// ===== SAME COLORS AS SIGNUP STUDY =====
+const ORANGE = "#E86A33";
+const PAGE_BG = "#EDE6D3";
+const PURE_BLACK = "#0A0A0A";
+const LABEL_BLACK = "#0F1A3A";
+const INPUT_BG = "#F6F1E6";
+const GREEN = "#22C55E";
 
 type RoleId = "personal_retails" | "retail_wholesale" | "food_beverage" | "furniture" | "electronics" | "fashion" | "grocery" | "beauty_salon" | "services";
 
@@ -31,75 +28,96 @@ export default function Page(){
   const { username } = useParams() as { username: string };
   const router = useRouter();
   const [selected, setSelected] = useState<RoleId>("personal_retails");
-  const [m, setM] = useState(false);
-  useEffect(()=>setM(true),[]);
-  if(!m) return null;
+  const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const go = (r: typeof ROLES[0]) => {
-    setSelected(r.id);
-    localStorage.setItem("drisyamn_role", r.id);
+  useEffect(()=>setMounted(true),[]);
+  if(!mounted) return null;
+
+  // MANUAL ROUTE - sirf Continue pe hoga
+  const handleContinue = () => {
+    setLoading(true);
+    const role = ROLES.find(r=>r.id===selected)!;
+    localStorage.setItem("drisyamn_role", role.id);
     localStorage.setItem("drisyamn_username", username);
-    router.push(`/${r.route}/${username}`);
+    localStorage.setItem("drisyamn_role_title", role.title);
+    router.push(`/${role.route}/${username}`);
   };
 
-  return(
-    <div className="min-h-screen flex justify-center" style={{backgroundColor: C.bg}}>
-      <div className="w-full max-w-[380px] px-4 py-6">
+  const selectedRole = ROLES.find(r=>r.id===selected);
 
-        <div className="flex justify-center mb-6">
-          <div className="bg-white px-4 py-2 rounded-full flex items-center gap-2" style={{boxShadow: "0 4px 16px rgba(0,0,0,0.06)"}}>
+  return(
+    <div className="min-h-[100vh] w-full flex items-start justify-center p-4 pt-8 overflow-y-auto" style={{background: PAGE_BG}}>
+      {/* SAME CARD AS SIGNUP */}
+      <div className="w-full max-w-[400px] bg-[#FFFEFB] rounded-[24px] px-6 py-6 mb-8 border border-black/[0.05] shadow-[0_0_0_8px_#fff,0_0_0_9px_rgba(0,0,0,0.05),0_20px_50px_rgba(0,0,0,0.12)]">
+
+        {/* TOP */}
+        <div className="text-center">
+          <h1 className="font-serif leading-none" style={{color: PURE_BLACK, fontSize: "44px", fontWeight: 800}}>Drisyamn</h1>
+          <p className="mt-1" style={{color: "#4B5563", fontSize: "15px", fontWeight: 600}}>Discover everything around you</p>
+          <h2 className="mt-6" style={{color: PURE_BLACK, fontSize: "19px", fontWeight: 700}}>Choose Your Role</h2>
+          <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F6F1E6] border border-black/5">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span style={{color: C.gray, fontSize: "10px", fontWeight: 500, letterSpacing: "0.1em"}}>STEP 2 OF 3 • SECURE</span>
-            <span style={{color: C.orange, fontSize: "10px", fontWeight: 600}}>{username}</span>
+            <span className="text-[10px] font-black tracking-[0.15em] opacity-50">STEP 2 OF 3</span>
+            <span className="text-[10px] font-bold" style={{color: ORANGE}}>{username?.split('_')[0]}</span>
           </div>
+          <p className="mt-3" style={{color: "#6B7280", fontSize: "13px", fontWeight: 500, lineHeight: "1.4"}}>
+            Hi {username?.split('_')[0]}! Select what best describes you
+          </p>
         </div>
 
-        <h1 className="text-center font-serif" style={{color: C.black, fontSize: "36px", fontWeight: 500}}>Drisyamn</h1>
-        <p className="text-center" style={{color: C.gray, fontSize: "13px", fontWeight: 400}}>Discover everything around you</p>
-
-        <h2 className="text-center mt-6" style={{color: C.black, fontSize: "19px", fontWeight: 600}}>Choose Your Role</h2>
-        <p className="text-center mt-1.5" style={{color: C.gray, fontSize: "12.5px", fontWeight: 400, lineHeight: "1.4"}}>
-          Hi {username?.split('_')[0]}! Select what best describes you<br/>to personalize your Siliguri experience
-        </p>
-
-        <div className="mt-6 flex flex-col gap-2.5">
+        {/* ROLES - SAME INPUT STYLE AS SIGNUP */}
+        <div className="mt-6 flex flex-col gap-3">
           {ROLES.map(r=>{
             const active = selected===r.id;
             return(
-              <button key={r.id} onClick={()=>go(r)}
-                className="w-full text-left bg-white rounded-[16px] px-3.5 py-3 flex justify-between items-start gap-3"
-                style={{
-                  boxShadow: active? "0 8px 20px rgba(232,106,51,0.15), 0 2px 8px rgba(0,0,0,0.06)" : "0 4px 12px rgba(0,0,0,0.05)",
-                  border: `1.5px solid ${active? C.orange : "#fff"}`,
-                }}
+              <button
+                key={r.id}
+                onClick={()=>setSelected(r.id)}
+                className={`w-full text-left rounded-[14px] border px-5 py-3.5 flex justify-between items-start gap-3 text-left transition-all outline-none
+                  ${active? "bg-white border-black/20 shadow-[0_0_0_4px_rgba(0,0,0,0.05)]" : "bg-[#F6F1E6] border-black/10 hover:bg-white hover:border-black/15"}`}
               >
-                <div className="flex-1">
-                  {active && <span className="text-white px-2 py-0.5 rounded-full inline-block mb-1" style={{backgroundColor: C.orange, fontSize: "8px", fontWeight: 600, letterSpacing: "0.1em"}}>SELECTED</span>}
-                  <p style={{color: C.black, fontSize: "13.5px", fontWeight: 500, lineHeight: "1.2"}}>{r.title}</p>
-                  <p style={{color: C.gray, fontSize: "11px", fontWeight: 400, marginTop: "2px"}}>{r.desc}</p>
-                  <p style={{color: C.light, fontSize: "10px", fontWeight: 400}}>{r.sub}</p>
-                  <div className="flex gap-1 mt-2 flex-wrap">
-                    {r.tags.map(t=> <span key={t} className="px-2 py-0.5 rounded-full" style={{backgroundColor: C.tagBg, color: C.black, fontSize: "9px", fontWeight: 400}}>{t}</span>)}
+                <div className="flex-1 min-w-0">
+                  {/* Label style same as signup - 16px 700 #0F1A3A */}
+                  <p style={{color: LABEL_BLACK, fontSize: "16px", fontWeight: 700, lineHeight: "1.2"}}>{r.title}</p>
+                  <p style={{color: "#4B5563", fontSize: "13px", fontWeight: 500, marginTop: "3px", lineHeight: "1.3"}}>{r.desc}</p>
+                  <p style={{color: "#9CA3AF", fontSize: "11px", fontWeight: 400, marginTop: "2px"}}>{r.sub}</p>
+                  <div className="flex gap-1.5 mt-2.5 flex-wrap">
+                    {r.tags.map(t=>(
+                      <span key={t} className="px-2.5 py-1 rounded-full border border-black/5" style={{backgroundColor: "#fff", color: "#111827", fontSize: "10px", fontWeight: 500}}>{t}</span>
+                    ))}
                   </div>
                 </div>
-                <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{
-                  backgroundColor: active? C.green : "#fff",
-                  border: `1.5px solid ${active? C.green : "#E2E8F0"}`,
-                  boxShadow: active? "0 2px 8px rgba(34,197,94,0.3)" : "none"
+
+                {/* Beautiful green tick */}
+                <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-1 transition-all" style={{
+                  backgroundColor: active? GREEN : "#fff",
+                  border: `1.5px solid ${active? GREEN : "rgba(0,0,0,0.1)"}`,
+                  boxShadow: active? "0 2px 8px rgba(34,197,94,0.35)" : "none"
                 }}>
-                  {active && <span className="text-white" style={{fontSize: "11px", fontWeight: 700}}>✓</span>}
+                  {active && <span className="text-white font-black" style={{fontSize: "13px"}}>✓</span>}
                 </div>
               </button>
             )
           })}
         </div>
 
-        <button onClick={()=>go(ROLES.find(x=>x.id===selected)!)}
-          className="w-full mt-6 h-[46px] rounded-full text-white" style={{backgroundColor: C.black, fontSize: "13.5px", fontWeight: 500}}>
-          Continue as {ROLES.find(x=>x.id===selected)?.title} →
+        {/* SAME BUTTON AS SIGNUP */}
+        <button
+          onClick={handleContinue}
+          disabled={loading}
+          className="mt-6 w-full h-[52px] rounded-full text-white text-[14px] font-black tracking-[0.08em] uppercase disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] transition-all"
+          style={{
+            background: PURE_BLACK,
+            boxShadow: "0 0 0 6px white, 0 10px 24px rgba(0,0,0,0.18)",
+          }}
+        >
+          {loading? "ROUTING..." : `CONTINUE AS ${selectedRole?.title.toUpperCase()} →`}
         </button>
 
-        <p className="text-center mt-4" style={{color: C.light, fontSize: "10px"}}>You can change your role anytime from settings</p>
+        <p className="mt-5 text-center" style={{color: "#9CA3AF", fontSize: "11px", fontWeight: 500}}>
+          You can change your role anytime from settings • Siliguri
+        </p>
       </div>
     </div>
   )
