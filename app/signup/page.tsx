@@ -13,20 +13,18 @@ const LABEL_BLACK = "#0F1A3A";
 export default function SignupPage() {
   const router = useRouter();
 
-  // Form State
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [role, setRole] = useState<"personal" | "creator" | "retail" | "service">("personal");
-  
-  // UI & OTP State
+
   const [show, setShow] = useState(false);
   const [terms, setTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"form" | "otp">("form");
   const [otp, setOtp] = useState("");
-  const [isPhoneAuth, setIsPhoneAuth] = useState(false);
+  const [authEmail, setAuthEmail] = useState("");
   const [shake, setShake] = useState(false);
   const [err, setErr] = useState("");
 
@@ -35,7 +33,6 @@ export default function SignupPage() {
     setTimeout(() => setShake(false), 400);
   };
 
-  // 1. Handle Signup Submission
   const handleSignup = async () => {
     setErr("");
 
@@ -64,48 +61,55 @@ export default function SignupPage() {
 
     try {
       const isEmail = contact.includes("@");
-      setIsPhoneAuth(!isEmail);
+      const cleanContact = contact.trim().toLowerCase();
+      
+      // Use @gmail.com domain for phone signups so Supabase accepts the email
+      const digitsOnly = contact.replace(/\D/g, "");
+      const emailToUse = isEmail ? cleanContact : `user_${digitsOnly}@gmail.com`;
+      const phoneVal = isEmail ? null : contact.trim();
+      
+      setAuthEmail(emailToUse);
+
+      const username = (isEmail ? cleanContact.split("@")[0] : `user_${digitsOnly}`) + "_" + Date.now().toString().slice(-4);
+
+      // 1. Register User in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: emailToUse,
+        password: password,
+        options: {
+          data: {
+            full_name: name.trim(),
+            username: username,
+            role: role,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Signup failed");
+
+      // 2. Create User Profile
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: authData.user.id,
+        username: username,
+        full_name: name.trim(),
+        display_name: name.trim(),
+        email: emailToUse,
+        phone: phoneVal,
+        bio: `Hi, I am ${name}`,
+        avatar_url: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
+        role: role,
+        onboarding_done: false,
+      });
+
+      if (profileError) throw profileError;
 
       if (isEmail) {
-        // --- EMAIL SIGNUP ---
-        const cleanEmail = contact.trim().toLowerCase();
-
-        const { data, error } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password: password,
-          options: {
-            data: {
-              full_name: name.trim(),
-              username: cleanEmail.split("@")[0] + "_" + Math.floor(Math.random() * 1000),
-              role: role,
-            },
-          },
-        });
-
-        if (error) throw error;
         setStep("otp");
       } else {
-        // --- PHONE SIGNUP ---
-        // Clean input and attach country code (e.g., +91 for India, change as needed)
-        const digits = contact.replace(/\D/g, "");
-        if (digits.length < 10) throw new Error("Enter a valid phone number with country code");
-        
-        const formattedPhone = contact.startsWith("+") ? contact.trim() : `+${digits}`;
-
-        const { data, error } = await supabase.auth.signUp({
-          phone: formattedPhone,
-          password: password,
-          options: {
-            data: {
-              full_name: name.trim(),
-              username: "user_" + digits.slice(-4) + "_" + Math.floor(Math.random() * 1000),
-              role: role,
-            },
-          },
-        });
-
-        if (error) throw error;
-        setStep("otp");
+        // Automatically log in phone users and redirect to onboarding
+        await supabase.auth.signInWithPassword({ email: emailToUse, password });
+        router.push("/onboarding");
       }
     } catch (e: any) {
       setErr(e.message || "An error occurred during signup");
@@ -115,10 +119,9 @@ export default function SignupPage() {
     }
   };
 
-  // 2. Handle OTP Verification
   const verifyOtp = async () => {
     if (!otp || otp.length < 6) {
-      setErr("Enter full 6-digit OTP code");
+      setErr("Enter 6-digit OTP");
       triggerShake();
       return;
     }
@@ -127,29 +130,14 @@ export default function SignupPage() {
     setErr("");
 
     try {
-      if (isPhoneAuth) {
-        const digits = contact.replace(/\D/g, "");
-        const formattedPhone = contact.startsWith("+") ? contact.trim() : `+${digits}`;
+      const { error } = await supabase.auth.verifyOtp({
+        email: authEmail,
+        token: otp,
+        type: "signup",
+      });
 
-        const { error } = await supabase.auth.verifyOtp({
-          phone: formattedPhone,
-          token: otp,
-          type: "sms",
-        });
-
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.verifyOtp({
-          email: contact.trim().toLowerCase(),
-          token: otp,
-          type: "signup",
-        });
-
-        if (error) throw error;
-      }
-
-      // Successfully verified! Redirect user to onboarding or homefeed
-      router.push("/varify"); // Or /homefeed
+      if (error) throw error;
+      router.push("/onboarding");
     } catch (e: any) {
       setErr(e.message || "Invalid or expired OTP");
       triggerShake();
@@ -184,36 +172,33 @@ export default function SignupPage() {
 
         {step === "form" ? (
           <div className="mt-6">
-            {/* Full Name */}
             <label style={labelStyle}>Full Name</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="eg: John Doe"
+              placeholder="eg: tanka"
               className="mt-2 w-full h-[52px] px-5 rounded-[14px] bg-[#F6F1E6] border border-black/10 text-[15.5px] font-medium outline-none focus:bg-white focus:border-[#E86A33]/40"
               style={{ color: "#111827" }}
             />
 
-            {/* Email or Phone */}
             <label className="mt-5 block" style={labelStyle}>
               Email or Mobile Number
             </label>
             <input
               value={contact}
               onChange={(e) => setContact(e.target.value)}
-              placeholder="you@example.com or +919876543210"
+              placeholder="you@example.com or 9876543210"
               className="mt-2 w-full h-[52px] px-5 rounded-[14px] bg-[#F6F1E6] border border-black/10 text-[15.5px] font-medium outline-none"
               style={{ color: "#111827" }}
             />
 
-            {/* Account Role Selector */}
             <label className="mt-5 block" style={labelStyle}>
               Account Type
             </label>
             <select
               value={role}
               onChange={(e: any) => setRole(e.target.value)}
-              className="mt-2 w-full h-[52px] px-5 rounded-[14px] bg-[#F6F1E6] border border-black/10 text-[15.5px] font-medium outline-none"
+              className="mt-2 w-full h-[52px] px-5 rounded-[14px] bg-[#F6F1E6] border border-black/10 text-[15.5px] font-medium outline-none cursor-pointer"
               style={{ color: "#111827" }}
             >
               <option value="personal">Personal Account</option>
@@ -222,7 +207,6 @@ export default function SignupPage() {
               <option value="service">Service Provider</option>
             </select>
 
-            {/* Password */}
             <label className="mt-5 block" style={labelStyle}>
               Password
             </label>
@@ -245,7 +229,6 @@ export default function SignupPage() {
               </button>
             </div>
 
-            {/* Confirm Password */}
             <label className="mt-5 block" style={labelStyle}>
               Confirm Password
             </label>
@@ -258,7 +241,6 @@ export default function SignupPage() {
               style={{ color: "#111827" }}
             />
 
-            {/* Terms Agreement */}
             <label className="mt-5 flex items-start gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -275,20 +257,16 @@ export default function SignupPage() {
               </span>
             </label>
 
-            {/* Error Message */}
             {err && (
-              <div
-                className="mt-4 px-4 py-2.5 rounded-[10px] bg-[#F6F1E6] text-[13px] font-bold border border-black/5 text-red-600"
-              >
+              <div className="mt-4 px-4 py-2.5 rounded-[10px] bg-[#F6F1E6] text-[13px] font-bold border border-black/5 text-red-600">
                 {err}
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               onClick={handleSignup}
               disabled={loading}
-              className="mt-6 w-full h-[52px] rounded-full text-white text-[14px] font-black tracking-[0.08em] uppercase disabled:opacity-70 flex items-center justify-center"
+              className="mt-6 w-full h-[52px] rounded-full text-white text-[14px] font-black tracking-[0.08em] uppercase disabled:opacity-70 flex items-center justify-center cursor-pointer"
               style={{
                 background: ORANGE,
                 boxShadow: "0 0 0 6px white, 0 10px 24px rgba(232,106,51,0.35)",
@@ -307,19 +285,18 @@ export default function SignupPage() {
             </p>
           </div>
         ) : (
-          /* OTP Screen */
           <div className="mt-6">
             <p className="text-[14px] font-medium text-center" style={{ color: "#4B5563" }}>
-              Enter the 6-digit code sent to <br />
-              <strong className="text-black">{contact}</strong>
+              OTP sent to <br />
+              <strong className="text-black">{authEmail}</strong>
             </p>
 
             <input
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
-              placeholder="123456"
+              placeholder="Enter 6-digit OTP"
               maxLength={6}
-              className="mt-4 w-full h-[52px] px-5 rounded-[14px] bg-[#F6F1E6] border border-black/10 text-[20px] tracking-[0.4em] font-bold text-center outline-none"
+              className="mt-4 w-full h-[52px] px-5 rounded-[14px] bg-[#F6F1E6] border border-black/10 text-[18px] tracking-[0.3em] font-bold text-center outline-none"
               style={{ color: "#111827" }}
             />
 
@@ -332,10 +309,10 @@ export default function SignupPage() {
             <button
               onClick={verifyOtp}
               disabled={loading}
-              className="mt-6 w-full h-[52px] rounded-full text-white text-[14px] font-black uppercase disabled:opacity-70 flex items-center justify-center"
+              className="mt-6 w-full h-[52px] rounded-full text-white text-[14px] font-black uppercase disabled:opacity-70 flex items-center justify-center cursor-pointer"
               style={{ background: ORANGE }}
             >
-              {loading ? "VERIFYING..." : "VERIFY & CONTINUE"}
+              {loading ? "VERIFYING..." : "VERIFY OTP"}
             </button>
           </div>
         )}
