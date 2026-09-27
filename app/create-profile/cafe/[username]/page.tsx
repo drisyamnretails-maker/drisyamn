@@ -3,7 +3,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
-const RED = "#C1272D";
+const DARK_GREEN = "#1A4D2E";
 const BG = "#E9E1C8";
 
 export default function CreateCafePage() {
@@ -70,23 +70,27 @@ export default function CreateCafePage() {
     <div className="min-h-screen w-full flex justify-center" style={{ background: BG }}>
       <div className="w-full max-w-[720px] p-3 md:p-6">
 
-        <div className="flex items-center justify-between mb-4">
-          <Link href="/" className="text-[28px] font-black" style={{ fontFamily: "Georgia" }}>Drisyamn</Link>
-          <span className="text-[12px] bg-black text-white px-3 py-1 rounded-full">Create Cafe: {username}</span>
+        {/* HEADER - MIDDLE + BIG + TAGLINE */}
+        <div className="flex flex-col items-center justify-center text-center mb-6 mt-2">
+          <Link href="/" className="text-[44px] md:text-[52px] font-black tracking-[-0.03em] leading-none hover:text-[#1A4D2E] transition-all" style={{ fontFamily: "Georgia, serif", fontWeight: 900 }}>
+            Drisyamn
+          </Link>
+          <p className="mt-1 text-[13px] md:text-[14px] font-medium tracking-wide text-black/60 uppercase">Discover Everything Around You</p>
+          <span className="mt-2 text-[11px] bg-black text-white px-3 py-1 rounded-full">Create Cafe: {username}</span>
         </div>
 
         <div className="bg-white rounded-[20px] overflow-hidden border border-black/5 shadow-sm">
 
-          {/* COVER - Select from file, fit to cover */}
+          {/* COVER */}
           <div className="relative h-[220px] w-full bg-black/5 group">
             {cover? <img src={cover} className="w-full h-full object-cover" alt="cover" /> : <div className="w-full h-full flex items-center justify-center text-black/30 text-[13px]">No Cover Selected</div>}
-            <label className="absolute bottom-3 right-3 px-4 py-2 rounded-full bg-black text-white text-[12px] font-bold cursor-pointer hover:bg-black/80">
+            <label className="absolute bottom-3 right-3 px-4 py-2 rounded-full text-white text-[12px] font-bold cursor-pointer hover:opacity-90" style={{ background: DARK_GREEN }}>
               Select Cover Image
               <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImage(e, "cover")} />
             </label>
 
-            {/* DP - Fit with DP */}
-            <div className="absolute -bottom-[42px] left-1/2 -translate-x-1/2 md:left-8 md:translate-x-0">
+            {/* DP */}
+            <div className="absolute -bottom-[42px] left-1/2 -translate-x-1/2">
               <div className="relative w-[90px] h-[90px] rounded-full bg-white border-[4px] border-white shadow-xl overflow-hidden flex items-center justify-center">
                 {dp? <img src={dp} className="w-full h-full object-cover" alt="dp" /> : <span className="text-[36px]">☕</span>}
                 <label className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-[10px] font-bold opacity-0 hover:opacity-100 cursor-pointer transition">
@@ -142,20 +146,19 @@ export default function CreateCafePage() {
 
             {/* ADD MENU */}
             <div className="mt-8">
-              <div className="flex justify-between items-center"><h2 className="font-bold text-[18px]">Add Menu (Image + Name + Description + Price)</h2><button onClick={addMenuItem} className="px-4 h-[36px] rounded-full bg-black text-white text-[12px]">+ Add Item</button></div>
+              <div className="flex justify-between items-center"><h2 className="font-bold text-[18px]">Add Menu</h2><button onClick={addMenuItem} className="px-4 h-[36px] rounded-full text-white text-[12px]" style={{ background: DARK_GREEN }}>+ Add Item</button></div>
 
               <div className="mt-4 space-y-4">
                 {menu.map((item, i) => (
                   <div key={item.id} className="p-4 rounded-[16px] border border-black/10 bg-black/[0.02] flex flex-col md:flex-row gap-4">
-                    {/* Image Upload */}
                     <label className="w-full md:w-[110px] h-[110px] rounded-[12px] bg-white border border-dashed border-black/20 flex flex-col items-center justify-center cursor-pointer overflow-hidden shrink-0">
                       {item.image? <img src={item.image} className="w-full h-full object-cover" alt="" /> : <><span className="text-[20px]">📷</span><span className="text-[10px] mt-1">Menu Image</span></>}
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImage(e, "menu", i)} />
                     </label>
                     <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <input value={item.name} onChange={e => updateMenu(i, "name", e.target.value)} placeholder="Item Name e.g. Masala Chai" className="h-[44px] border rounded-[10px] px-3 text-[13px] bg-white" />
-                      <input value={item.price} onChange={e => updateMenu(i, "price", e.target.value)} placeholder="Price e.g. 30" type="number" className="h-[44px] border rounded-[10px] px-3 text-[13px] bg-white" />
-                      <input value={item.desc} onChange={e => updateMenu(i, "desc", e.target.value)} placeholder="Description e.g. Spiced tea with milk • Popular" className="md:col-span-2 h-[44px] border rounded-[10px] px-3 text-[13px] bg-white" />
+                      <input value={item.name} onChange={e => updateMenu(i, "name", e.target.value)} placeholder="Item Name" className="h-[44px] border rounded-[10px] px-3 text-[13px] bg-white" />
+                      <input value={item.price} onChange={e => updateMenu(i, "price", e.target.value)} placeholder="Price" type="number" className="h-[44px] border rounded-[10px] px-3 text-[13px] bg-white" />
+                      <input value={item.desc} onChange={e => updateMenu(i, "desc", e.target.value)} placeholder="Description" className="md:col-span-2 h-[44px] border rounded-[10px] px-3 text-[13px] bg-white" />
                       <button onClick={() => removeMenuItem(i)} className="md:col-span-2 text-[11px] text-red-500 text-left">Remove Item ✕</button>
                     </div>
                   </div>
@@ -163,10 +166,9 @@ export default function CreateCafePage() {
               </div>
             </div>
 
-            <button onClick={handleSave} className="mt-8 w-full h-[52px] rounded-full text-white font-bold text-[15px] active:scale-95 transition" style={{ background: RED }}>
+            <button onClick={handleSave} className="mt-8 w-full h-[52px] rounded-full text-white font-bold text-[15px] active:scale-95 transition" style={{ background: DARK_GREEN }}>
               Save & Create Profile →
             </button>
-            <p className="mt-3 text-center text-[11px] text-black/40">Cover image will fit to cover • DP will fit to circle • All data saved locally</p>
 
           </div>
         </div>
