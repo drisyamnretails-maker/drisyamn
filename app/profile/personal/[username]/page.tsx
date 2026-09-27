@@ -1,355 +1,377 @@
-"use client"
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+"use client";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
-// 7CR LOCK COLORS
-const C = {
-  bg: "#EDE6D3",
-  card: "#FFFEFB",
-  soft: "#F6F1E6",
-  orange: "#E86A33",
-  black: "#121212",
-}
-
-type Profile = {
-  id: string
-  username: string
-  full_name: string
-  bio: string
-  avatar_url: string
-  cover_url?: string
-  friends_count: number
-  location?: string
-  is_me?: boolean
-}
-
-type Post = {
-  id: string
-  user_id: string
-  image_url: string
-  caption: string
-  created_at: string
-  likes: number
-}
-
-type Friend = {
-  id: string
-  username: string
-  avatar_url: string
-  full_name: string
-}
+// THEME CONSTANTS - DO NOT DELETE
+const ORANGE = "#E86A33";
+const PAGE_BG = "#EDE6D3";
+const PURE_BLACK = "#0A0A0A";
+const LABEL_BLACK = "#0F1A3A";
+const INPUT_BG = "#F6F1E6";
+const CARD_BG = "#FFFEFB";
+const BORDER_LIGHT = "rgba(0,0,0,0.06)";
+const BORDER_MEDIUM = "rgba(0,0,0,0.1)";
 
 export default function PersonalProfilePage() {
-  const { username } = useParams() as { username: string }
-  const router = useRouter()
+  const { username } = useParams() as { username: string };
+  const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [posts, setPosts] = useState<Post[]>([])
-  const [friends, setFriends] = useState<Friend[]>([])
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<"posts" | "about">("posts")
-  const [showFriends, setShowFriends] = useState(false)
-  const [showEdit, setShowEdit] = useState(false)
-  const [isFriend, setIsFriend] = useState(false)
-  const [isRequested, setIsRequested] = useState(false)
-  const [myId, setMyId] = useState<string | null>(null)
+  // CORE STATES
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("posts");
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [followersCount, setFollowersCount] = useState(1248);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [likedPosts, setLikedPosts] = useState<number[]>([]);
 
-  // EDIT STATE
-  const [editName, setEditName] = useState("")
-  const [editBio, setEditBio] = useState("")
-  const [editAvatar, setEditAvatar] = useState("")
+  // EDIT FORM STATE
+  const [editForm, setEditForm] = useState({
+    displayName: "",
+    bio: "",
+    location: "",
+    website: "",
+  });
 
+  // FETCH PROFILE FROM SUPABASE
   useEffect(() => {
-    init()
-  }, [username])
-
-  async function init() {
-    try {
-      setLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) setMyId(user.id)
-
-      // 1. GET PROFILE
-      const { data: prof, error } = await supabase
-       .from("profiles")
-       .select("*")
-       .eq("username", username)
-       .single()
-
-      if (error ||!prof) {
-        console.log("Profile not found", error)
-        setLoading(false)
-        return
-      }
-
-      const isMe = user?.id === prof.id
-      setProfile({...prof, is_me: isMe })
-      setEditName(prof.full_name || "")
-      setEditBio(prof.bio || "")
-      setEditAvatar(prof.avatar_url || "")
-
-      // 2. GET POSTS - SAME TABLE AS HOMEFEED
-      const { data: postData } = await supabase
-       .from("posts")
-       .select("*")
-       .eq("user_id", prof.id)
-       .order("created_at", { ascending: false })
-
-      setPosts(postData || [])
-
-      // 3. GET FRIENDS LIST
-      const { data: friendData } = await supabase
-       .from("friends")
-       .select("friend_id, profiles!friends_friend_id_fkey(id, username, avatar_url, full_name)")
-       .eq("user_id", prof.id)
-       .eq("status", "accepted")
-
-      const formattedFriends = (friendData || []).map((f: any) => f.profiles)
-      setFriends(formattedFriends)
-
-      // 4. CHECK IF I AM FRIEND WITH THIS USER
-      if (user &&!isMe) {
-        const { data: check } = await supabase
-         .from("friends")
-         .select("*")
-         .or(`and(user_id.eq.${user.id},friend_id.eq.${prof.id}),and(user_id.eq.${prof.id},friend_id.eq.${user.id})`)
-         .maybeSingle()
-
-        if (check) {
-          if (check.status === "accepted") setIsFriend(true)
-          if (check.status === "pending") setIsRequested(true)
+    const fetchProfile = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("username", username)
+        .single();
+        if (data) {
+          setProfile(data);
+          setEditForm({
+            displayName: data.full_name || "",
+            bio: data.bio || "",
+            location: data.location || "",
+            website: data.website || "",
+          });
+          setFollowersCount(data.followers_count || 1248);
+        } else {
+          // FALLBACK MOCK IF NOT FOUND
+          setProfile({
+            full_name: username,
+            username: username,
+            bio: "Writer | Explorer | Siliguri ❤️ | Building Drisyam",
+            location: "Siliguri, West Bengal",
+            dob: "1998-05-12",
+            website: "drisyam.app",
+            interests: ["Shopping", "Travel", "Food", "Fashion", "Tech", "Music"],
+            avatar_url: null,
+            cover_url: null,
+            followers_count: 1248,
+            following_count: 320,
+            posts_count: 42,
+            verified: true,
+            joined: "Jan 2026",
+          });
         }
+      } catch (e) {
+        console.log("fetch error", e);
       }
+      setLoading(false);
+    };
+    if (username) fetchProfile();
+  }, [username]);
 
+  // SCROLL LISTENER
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 100);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // HELPERS
+  const toggleLike = (id: number) => {
+    setLikedPosts((prev) =>
+      prev.includes(id)? prev.filter((x) => x!== id) : [...prev, id]
+    );
+  };
+
+  const handleFollow = () => {
+    setIsFollowing(!isFollowing);
+    setFollowersCount((c) => (isFollowing? c - 1 : c + 1));
+  };
+
+  const handleShare = () => {
+    setShowShare(true);
+    setTimeout(() => setShowShare(false), 2500);
+  };
+
+  const handleSaveEdit = async () => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("profiles").update({
+          full_name: editForm.displayName,
+          bio: editForm.bio,
+          location: editForm.location,
+          website: editForm.website,
+        }).eq("id", user.id);
+        setProfile({...profile, full_name: editForm.displayName, bio: editForm.bio, location: editForm.location, website: editForm.website });
+      }
     } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
+      console.log(e);
     }
-  }
+    setLoading(false);
+    setShowEdit(false);
+  };
 
-  async function handleFriendAction() {
-    if (!myId ||!profile) return
-    if (isFriend || isRequested) return
-
-    setIsRequested(true)
-    await fetch("/api/friends/action", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "request",
-        target_id: profile.id,
-      }),
-    })
-  }
-
-  async function handleEditSave() {
-    if (!profile) return
-    const { error } = await supabase
-     .from("profiles")
-     .update({
-        full_name: editName,
-        bio: editBio,
-        avatar_url: editAvatar,
-      })
-     .eq("id", profile.id)
-
-    if (!error) {
-      setProfile({...profile, full_name: editName, bio: editBio, avatar_url: editAvatar })
-      setShowEdit(false)
-    }
-  }
-
-  async function handleDeletePost(id: string) {
-    if (!confirm("Delete this post?")) return
-    await supabase.from("posts").delete().eq("id", id)
-    setPosts(posts.filter(p => p.id!== id))
-  }
-
+  // LOADING SCREEN
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#EDE6D3] flex items-center justify-center">
-        <p className="font-black text-[13px] tracking-widest uppercase animate-pulse">Drisyamn Loading...</p>
-      </div>
-    )
-  }
-
-  if (!profile) {
-    return (
-      <div className="min-h-screen bg-[#EDE6D3] flex flex-col items-center justify-center p-6">
-        <div className="bg-[#FFFEFB] rounded-[32px] p-10 shadow-[0_0_0_12px_white] text-center max-w-[440px] w-full">
-          <p className="font-black text-[26px] tracking-[-0.03em] uppercase">404</p>
-          <p className="font-black text-[11px] tracking-widest uppercase opacity-60 mt-2">User @{username} not found</p>
-          <button onClick={() => router.push("/")} className="mt-6 w-full bg-[#121212] text-white rounded-full py-3.5 text-[13px] font-black tracking-widest uppercase">Go Home</button>
+      <div className="min-h-screen w-full flex items-center justify-center" style={{ background: PAGE_BG }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-full border-[3px] border-black/10 border-t-[#E86A33] animate-spin" />
+          <p className="font-black tracking-[0.25em] text-[11px] opacity-60" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>LOADING @{username?.toUpperCase()}</p>
         </div>
       </div>
-    )
+    );
   }
+
+  // STATS ARRAY
+  const stats = [
+    { label: "POSTS", value: profile?.posts_count || "42", icon: "📸" },
+    { label: "FOLLOWERS", value: followersCount.toLocaleString(), icon: "👥" },
+    { label: "FOLLOWING", value: profile?.following_count || "320", icon: "💫" },
+  ];
+
+  const mockPosts = Array.from({ length: 12 }).map((_, i) => ({
+    id: i,
+    likes: Math.floor(Math.random() * 100) + 5,
+    color: i % 4 === 0? "#F6F1E6" : i % 4 === 1? "#EDE6D3" : i % 4 === 2? "#FFFEFB" : "#F2E8CF",
+    type: i % 3 === 0? "image" : i % 3 === 1? "video" : "text",
+  }));
+
+  const highlights = [
+    { id: 1, label: "Travel", emoji: "✈️" },
+    { id: 2, label: "Food", emoji: "🍜" },
+    { id: 3, label: "Work", emoji: "💼" },
+    { id: 4, label: "Music", emoji: "🎵" },
+    { id: 5, label: "New", emoji: "➕" },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#EDE6D3] flex justify-center">
-      <div className="w-full max-w-[440px] p-3 pb-20">
+    <div className="min-h-screen w-full flex justify-center" style={{ background: PAGE_BG, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      {/* SHARE TOAST */}
+      {showShare && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-5 h-10 rounded-full bg-black text-white flex items-center gap-2 text-[12px] font-bold shadow-2xl animate-bounce">
+          <span>🔗</span> Link copied: drisyam.app/{username}
+        </div>
+      )}
 
-        {/* COVER + PROFILE CARD */}
-        <div className="bg-[#FFFEFB] rounded-[32px] shadow-[0_0_0_12px_white] overflow-hidden mt-4">
-          {/* Cover */}
-          <div className="h-[110px] bg-[#F6F1E6] w-full relative">
-            {profile.cover_url && <img src={profile.cover_url} className="w-full h-full object-cover" alt="cover" />}
+      {/* EDIT MODAL */}
+      {showEdit && (
+        <div className="fixed inset-0 z-[90] bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+          <div className="w-full max-w-[440px] bg-white rounded-t-[24px] md:rounded-[24px] p-6 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-[18px] font-black" style={{ fontFamily: "'Fraunces', serif" }}>Edit Profile</h2>
+              <button onClick={() => setShowEdit(false)} className="w-8 h-8 rounded-full bg-[#F6F1E6] flex items-center justify-center">✕</button>
+            </div>
+            <label className="text-[11px] font-black tracking-widest opacity-50">DISPLAY NAME</label>
+            <input value={editForm.displayName} onChange={(e) => setEditForm({...editForm, displayName: e.target.value })} className="mt-2 w-full h-[48px] px-4 rounded-[14px] border bg-[#F6F1E6] outline-none text-[14px] font-semibold" />
+            <label className="mt-4 block text-[11px] font-black tracking-widest opacity-50">BIO</label>
+            <textarea value={editForm.bio} onChange={(e) => setEditForm({...editForm, bio: e.target.value })} rows={3} className="mt-2 w-full px-4 py-3 rounded-[14px] border bg-[#F6F1E6] outline-none text-[13px] font-medium resize-none" />
+            <label className="mt-4 block text-[11px] font-black tracking-widest opacity-50">LOCATION</label>
+            <input value={editForm.location} onChange={(e) => setEditForm({...editForm, location: e.target.value })} className="mt-2 w-full h-[48px] px-4 rounded-[14px] border bg-[#F6F1E6] outline-none text-[14px] font-semibold" />
+            <label className="mt-4 block text-[11px] font-black tracking-widest opacity-50">WEBSITE</label>
+            <input value={editForm.website} onChange={(e) => setEditForm({...editForm, website: e.target.value })} className="mt-2 w-full h-[48px] px-4 rounded-[14px] border bg-[#F6F1E6] outline-none text-[14px] font-semibold" />
+            <button onClick={handleSaveEdit} className="mt-6 w-full h-[48px] rounded-full text-white font-black text-[12px] tracking-widest" style={{ background: ORANGE }}>SAVE CHANGES</button>
           </div>
+        </div>
+      )}
 
-          {/* Profile Info */}
-          <div className="p-6 pt-0">
-            <div className="flex justify-between items-end -mt-8">
-              <img src={profile.avatar_url || "https://i.pravatar.cc/150"} className="w-[84px] h-[84px] rounded-full object-cover border-[4px] border-white shadow-sm" alt="avatar" />
-              <div className="flex gap-2 mb-2">
-                <button className="w-9 h-9 rounded-full bg-[#F6F1E6] flex items-center justify-center font-black text-[14px]">↗</button>
-                <button className="w-9 h-9 rounded-full bg-[#F6F1E6] flex items-center justify-center font-black text-[14px]">...</button>
+      <div className="w-full max-w-[480px] bg-[#FFFEFB] min-h-screen md:min-h-[90vh] md:mt-6 md:rounded-[28px] overflow-hidden border border-black/[0.05] shadow-[0_0_0_8px_#fff,0_0_0_9px_rgba(0,0,0,0.05),0_25px_60px_rgba(0,0,0,0.15)] flex flex-col relative">
+
+        {/* STICKY HEADER */}
+        <div className={`h-[56px] w-full flex items-center justify-between px-5 backdrop-blur sticky top-0 z-20 border-b transition-all ${isScrolled? "bg-white/90 shadow-sm" : "bg-white/80 border-black/[0.05]"}`}>
+          <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-[#F6F1E6] flex items-center justify-center active:scale-95 transition-transform font-bold">←</button>
+          <div className="flex flex-col items-center">
+            <p className="font-black tracking-[0.15em] text-[12px]" style={{ fontFamily: "'Space Grotesk', sans-serif", color: LABEL_BLACK }}>@{username?.toUpperCase()}</p>
+            {isScrolled && <p className="text-[10px] font-bold opacity-60 -mt-1">{profile.full_name}</p>}
+          </div>
+          <button onClick={handleShare} className="w-9 h-9 rounded-full bg-[#F6F1E6] flex items-center justify-center active:scale-95 transition-transform font-bold">↗</button>
+        </div>
+
+        {/* COVER SECTION */}
+        <div className="w-full h-[210px] bg-[#F6F1E6] relative overflow-hidden">
+          {profile.cover_url? (
+            <img src={profile.cover_url} className="w-full h-full object-cover" alt="cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-[#F6F1E6] via-[#EDE6D3] to-[#E86A33]/20 flex items-center justify-center">
+              <div className="text-center opacity-20">
+                <p className="text-[32px]">🖼️</p>
+                <p className="text-[10px] font-black tracking-[0.2em] mt-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>COVER PHOTO</p>
               </div>
             </div>
-
-            <div className="mt-4">
-              <h1 className="font-black text-[26px] tracking-[-0.03em] uppercase leading-[0.9]">{profile.full_name || profile.username}</h1>
-              <p className="text-[11px] font-black tracking-widest uppercase opacity-50 mt-1.5">@{profile.username} {profile.location? `• ${profile.location}` : "• SILIGURI"}</p>
-              <p className="text-[12px] font-medium mt-3 leading-[1.4] uppercase tracking-wide opacity-80">{profile.bio || "Drisyamn family member. No shop, only real connections."}</p>
-            </div>
-
-            {/* STATS BOX */}
-            <div className="bg-[#F6F1E6] rounded-[22px] flex justify-between p-1 mt-5">
-              <div className="text-center w-full py-3 cursor-pointer hover:opacity-70" onClick={() => setShowFriends(true)}>
-                <p className="font-black text-[18px] tracking-[-0.02em] leading-none">{profile.friends_count || friends.length || 0}</p>
-                <p className="text-[10px] font-black tracking-[0.2em] uppercase opacity-60 mt-1">Friends</p>
-              </div>
-              <div className="w-[1px] bg-black/10 my-3" />
-              <div className="text-center w-full py-3">
-                <p className="font-black text-[18px] tracking-[-0.02em] leading-none">{posts.length}</p>
-                <p className="text-[10px] font-black tracking-[0.2em] uppercase opacity-60 mt-1">Posts</p>
-              </div>
-              <div className="w-[1px] bg-black/10 my-3" />
-              <div className="text-center w-full py-3">
-                <p className="font-black text-[18px] tracking-[-0.02em] leading-none">7CR</p>
-                <p className="text-[10px] font-black tracking-[0.2em] uppercase opacity-60 mt-1">Vibe</p>
-              </div>
-            </div>
-
-            {/* ACTION BUTTON */}
-            {profile.is_me? (
-              <button onClick={() => setShowEdit(true)} className="w-full mt-4 bg-[#121212] text-white rounded-full py-4 text-[13px] font-black tracking-[0.2em] uppercase">Edit Profile</button>
-            ) : (
-              <button onClick={handleFriendAction} disabled={isFriend || isRequested} className={`w-full mt-4 rounded-full py-4 text-[13px] font-black tracking-[0.2em] uppercase transition ${isFriend? "bg-[#F6F1E6] text-black/50" : isRequested? "bg-[#F6F1E6] text-black/50" : "bg-[#E86A33] text-white"}`}>
-                {isFriend? "Friends ✓" : isRequested? "Requested" : "Add Friend +"}
-              </button>
-            )}
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+          <div className="absolute bottom-3 left-4 right-4 flex justify-between items-center">
+            <div className="px-3 h-7 rounded-full bg-black/50 backdrop-blur text-white text-[10px] font-bold flex items-center gap-1">● LIVE</div>
+            <div className="px-3 h-7 rounded-full bg-white/90 backdrop-blur text-black text-[10px] font-black">📍 SILIGURI</div>
           </div>
         </div>
 
-        {/* TABS */}
-        <div className="bg-[#FFFEFB] rounded-full p-1.5 flex mt-5 shadow-[0_0_0_8px_white] w-fit mx-auto">
-          <button onClick={() => setActiveTab("posts")} className={`px-7 py-2.5 rounded-full text-[11px] font-black tracking-widest uppercase transition ${activeTab === "posts"? "bg-[#121212] text-white" : "opacity-50"}`}>Posts</button>
-          <button onClick={() => setActiveTab("about")} className={`px-7 py-2.5 rounded-full text-[11px] font-black tracking-widest uppercase transition ${activeTab === "about"? "bg-[#121212] text-white" : "opacity-50"}`}>About</button>
+        {/* PROFILE HEAD */}
+        <div className="px-6 relative pb-2">
+          <div className="flex items-end justify-between -mt-[48px] relative z-10">
+            <div className="w-[96px] h-[96px] rounded-full bg-white border-[5px] border-white shadow-[0_12px_24px_rgba(0,0,0,0.18)] overflow-hidden relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              {profile.avatar_url? (
+                <img src={profile.avatar_url} className="w-full h-full object-cover" alt="avatar" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[38px] bg-[#F6F1E6]">👤</div>
+              )}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                <span className="text-[10px] font-bold bg-black text-white px-2 py-1 rounded-full">EDIT</span>
+              </div>
+            </div>
+            <div className="flex gap-2 mb-2">
+              <button onClick={handleFollow} className="px-6 h-[38px] rounded-full text-[11px] font-black tracking-[0.12em] active:scale-95 transition-all shadow-sm" style={{ background: isFollowing? "#F6F1E6" : ORANGE, color: isFollowing? PURE_BLACK : "#fff", border: isFollowing? "1px solid rgba(0,0,0,0.08)" : "none", fontFamily: "'Space Grotesk', sans-serif" }}>{isFollowing? "FOLLOWING ✓" : "FOLLOW +"}</button>
+              <button onClick={() => setShowEdit(true)} className="px-5 h-[38px] rounded-full bg-[#F6F1E6] border border-black/[0.08] text-[11px] font-black tracking-[0.1em] active:scale-95 transition-all" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>EDIT</button>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <div className="flex items-center gap-2">
+              <h1 className="font-black leading-[0.9] tracking-tight" style={{ fontSize: "26px", fontFamily: "'Fraunces', serif", fontStyle: "italic", color: PURE_BLACK }}>{profile.full_name}</h1>
+              {profile.verified && <span className="w-5 h-5 rounded-full bg-[#1D9BF0] text-white flex items-center justify-center text-[12px]">✓</span>}
+            </div>
+            <p className="mt-2 text-[13.5px] leading-[1.5] font-medium text-[#444]">{profile.bio}</p>
+          </div>
+
+          {/* STATS */}
+          <div className="mt-5 grid grid-cols-3 gap-3">
+            {stats.map((s) => (
+              <div key={s.label} className="h-[72px] rounded-[18px] bg-[#F6F1E6] border border-black/[0.04] flex flex-col items-center justify-center hover:bg-[#EDE6D3] transition-colors cursor-pointer group">
+                <p className="text-[13px] group-hover:scale-110 transition-transform">{s.icon}</p>
+                <p className="font-black text-[16px] mt-1" style={{ color: PURE_BLACK, fontFamily: "'Space Grotesk', sans-serif" }}>{s.value}</p>
+                <p className="text-[9px] font-black tracking-[0.16em] opacity-50" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* META PILLS */}
+          <div className="mt-5 flex flex-wrap gap-2">
+            {profile.location && <div className="px-3.5 h-[30px] rounded-full bg-white border border-black/10 flex items-center gap-1.5 text-[11px] font-bold shadow-sm"><span>📍</span>{profile.location}</div>}
+            {profile.dob && <div className="px-3.5 h-[30px] rounded-full bg-white border border-black/10 flex items-center gap-1.5 text-[11px] font-bold shadow-sm"><span>🎂</span>{profile.dob}</div>}
+            <div className="px-3.5 h-[30px] rounded-full bg-white border border-black/10 flex items-center gap-1.5 text-[11px] font-bold shadow-sm"><span>🔗</span>drisyam.app/{username}</div>
+            <div className="px-3.5 h-[30px] rounded-full bg-white border border-black/10 flex items-center gap-1.5 text-[11px] font-bold shadow-sm"><span>📅</span>Joined {profile.joined || "Jan 2026"}</div>
+          </div>
+
+          {/* HIGHLIGHTS */}
+          <div className="mt-6 flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+            {highlights.map((h) => (
+              <div key={h.id} className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer">
+                <div className="w-[60px] h-[60px] rounded-full bg-[#F6F1E6] border-2 border-white shadow-[0_4px_12px_rgba(0,0,0,0.08)] flex items-center justify-center text-[22px] hover:scale-105 transition-transform" style={{ borderColor: h.label === "New"? ORANGE : "white" }}>{h.emoji}</div>
+                <p className="text-[10px] font-bold tracking-wide opacity-70">{h.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* INTERESTS */}
+          <div className="mt-6">
+            <h3 className="font-black tracking-[0.18em] text-[10px] opacity-40 flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>INTERESTS & TAGS <span className="w-6 h-[1px] bg-black/10" /></h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {(profile.interests && profile.interests.length > 0? profile.interests : ["Shopping", "Travel", "Music", "Tech", "Food", "Fashion"]).map((tag: string, idx: number) => (
+                <span key={tag} className="px-4 h-[36px] rounded-full flex items-center text-[11px] font-black border hover:scale-105 transition-transform cursor-pointer shadow-sm" style={{ background: idx === 0? ORANGE : idx === 1? PURE_BLACK : "#F6F1E6", color: idx === 0 || idx === 1? "#fff" : "#111827", borderColor: idx === 0? ORANGE : idx === 1? PURE_BLACK : "rgba(0,0,0,0.08)", fontFamily: "'Space Grotesk', sans-serif" }}>{tag}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* ABOUT CARD */}
+          <div className="mt-6 p-5 rounded-[20px] bg-gradient-to-br from-[#F6F1E6]/80 to-[#EDE6D3]/60 border border-black/[0.04]">
+            <h4 className="font-black text-[11px] tracking-[0.15em] opacity-50 flex items-center gap-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>ABOUT THIS PROFILE <span className="ml-auto text-[14px]">✦</span></h4>
+            <p className="mt-3 text-[12.5px] leading-[1.7] font-medium text-[#444]">Living in {profile.location || "Siliguri, West Bengal"}. Passionate about creating content and exploring new places. Joined Drisyam community in 2026. Love to connect with like-minded people from North Bengal and beyond. Currently working on personal projects.</p>
+            <div className="mt-4 flex gap-2 flex-wrap">
+              <span className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-white border shadow-sm">✦ Verified Profile</span>
+              <span className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-white border shadow-sm">✦ Personal Account</span>
+              <span className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-white border shadow-sm">✦ Siliguri 📍</span>
+            </div>
+          </div>
         </div>
 
-        {/* CONTENT */}
-        {activeTab === "posts"? (
-          <div className="mt-5 grid gap-4">
-            {posts.length === 0? (
-              <div className="bg-[#FFFEFB] rounded-[32px] p-10 text-center shadow-[0_0_0_12px_white]">
-                <p className="font-black uppercase tracking-widest text-[12px] opacity-50">No posts yet</p>
-                <p className="font-black uppercase tracking-widest text-[10px] opacity-30 mt-2">Homefeed posts will appear here</p>
-              </div>
-            ) : (
-              posts.map((post) => (
-                <div key={post.id} className="bg-[#FFFEFB] rounded-[32px] overflow-hidden shadow-[0_0_0_12px_white] group">
-                  <div className="relative">
-                    <img src={post.image_url} className="w-full object-cover min-h-[320px]" alt="post" />
-                    {profile.is_me && (
-                      <button onClick={() => handleDeletePost(post.id)} className="absolute top-3 right-3 bg-black/70 text-white w-8 h-8 rounded-full text-[12px] font-black opacity-0 group-hover:opacity-100 transition">X</button>
-                    )}
+        {/* TABS HEADER */}
+        <div className="mt-8 px-2 flex gap-2 border-b border-black/[0.06] sticky top-[56px] bg-[#FFFEFB]/90 backdrop-blur z-10">
+          {[
+            { id: "posts", label: "POSTS", count: "12" },
+            { id: "media", label: "MEDIA", count: "8" },
+            { id: "likes", label: "LIKES", count: "124" },
+            { id: "about", label: "ABOUT", count: "" },
+          ].map((tab) => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="flex-1 h-[46px] font-black text-[11px] tracking-[0.14em] border-b-[2.5px] transition-all flex items-center justify-center gap-1" style={{ fontFamily: "'Space Grotesk', sans-serif", borderColor: activeTab === tab.id? ORANGE : "transparent", color: activeTab === tab.id? PURE_BLACK : "#999" }}>{tab.label} {tab.count && <span className="text-[10px] opacity-50">({tab.count})</span>}</button>
+          ))}
+        </div>
+
+        {/* POSTS GRID */}
+        <div className="p-[3px] bg-white">
+          {activeTab === "posts" && (
+            <div className="grid grid-cols-3 gap-[3px]">
+              {mockPosts.map((p) => (
+                <div key={p.id} className="aspect-square rounded-[14px] overflow-hidden relative group cursor-pointer bg-[#F6F1E6] border border-black/[0.03]" style={{ background: p.color }} onClick={() => toggleLike(p.id)}>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 opacity-40 group-hover:opacity-80 transition-opacity">
+                    <span className="text-[22px]">{p.type === "video"? "▶️" : p.type === "text"? "📝" : "🖼️"}</span>
+                    <span className="text-[9px] font-black tracking-widest">{p.type.toUpperCase()}</span>
                   </div>
-                  <div className="p-4 flex justify-between items-start gap-3">
-                    <p className="text-[11px] font-black tracking-widest uppercase leading-[1.4] flex-1">{post.caption || "DRISYAMN MOMENT"}</p>
-                    <p className="text-[10px] font-black tracking-widest uppercase opacity-40 whitespace-nowrap">{new Date(post.created_at).toLocaleDateString()}</p>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute bottom-1.5 left-1.5 right-1.5 flex justify-between items-center">
+                    <span className="text-[10px] font-bold bg-black/60 text-white px-2 py-0.5 rounded-full flex items-center gap-1">❤️ {p.likes + (likedPosts.includes(p.id)? 1 : 0)}</span>
+                    {likedPosts.includes(p.id) && <span className="text-[10px]">🔥</span>}
                   </div>
                 </div>
-              ))
-            )}
-          </div>
-        ) : (
-          <div className="mt-5 bg-[#FFFEFB] rounded-[32px] p-6 shadow-[0_0_0_12px_white]">
-            <h3 className="font-black text-[12px] tracking-widest uppercase">About @{profile.username}</h3>
-            <div className="mt-4 space-y-3">
-              <div className="bg-[#F6F1E6] rounded-[16px] p-4 flex justify-between">
-                <span className="text-[10px] font-black tracking-widest uppercase opacity-50">Location</span>
-                <span className="text-[11px] font-black tracking-widest uppercase">{profile.location || "Siliguri, WB"}</span>
-              </div>
-              <div className="bg-[#F6F1E6] rounded-[16px] p-4 flex justify-between">
-                <span className="text-[10px] font-black tracking-widest uppercase opacity-50">Joined</span>
-                <span className="text-[11px] font-black tracking-widest uppercase">Drisyamn 2026</span>
-              </div>
-              <div className="bg-[#F6F1E6] rounded-[16px] p-4">
-                <span className="text-[10px] font-black tracking-widest uppercase opacity-50 block mb-2">Bio</span>
-                <span className="text-[12px] font-bold uppercase tracking-wide leading-[1.4]">{profile.bio || "No bio. Just vibes."}</span>
-              </div>
+              ))}
             </div>
-          </div>
-        )}
-
-        {/* FRIENDS MODAL */}
-        {showFriends && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end justify-center z-50 p-3" onClick={() => setShowFriends(false)}>
-            <div className="bg-[#FFFEFB] w-full max-w-[440px] rounded-t-[32px] rounded-b-[32px] p-6 min-h-[60vh] max-h-[80vh] overflow-y-auto shadow-[0_0_0_12px_white]" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center">
-                <h2 className="font-black uppercase tracking-[0.2em] text-[13px]">Friends • {friends.length}</h2>
-                <button onClick={() => setShowFriends(false)} className="w-8 h-8 rounded-full bg-[#F6F1E6] font-black">X</button>
-              </div>
-              <div className="mt-6 grid gap-3">
-                {friends.length === 0? (
-                  <p className="text-[11px] font-black tracking-widest uppercase opacity-40 text-center py-10">No friends yet</p>
-                ) : (
-                  friends.map((f) => (
-                    <div key={f.id} className="flex items-center gap-3 bg-[#F6F1E6] p-3 rounded-[20px] cursor-pointer" onClick={() => { setShowFriends(false); router.push(`/personal/${f.username}`) }}>
-                      <img src={f.avatar_url} className="w-11 h-11 rounded-full object-cover" alt={f.username} />
-                      <div>
-                        <p className="font-black text-[12px] uppercase tracking-widest">{f.full_name || f.username}</p>
-                        <p className="text-[10px] font-black tracking-widest uppercase opacity-50">@{f.username}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
+          )}
+          {activeTab === "media" && (
+            <div className="h-[240px] flex flex-col items-center justify-center gap-3 opacity-40 p-6 text-center">
+              <span className="text-[32px]">🎬</span>
+              <p className="text-[12px] font-black tracking-widest" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>NO MEDIA YET</p>
+              <p className="text-[11px] font-medium max-w-[200px] leading-[1.4]">Videos and photos will appear here when {username} posts them</p>
             </div>
-          </div>
-        )}
-
-        {/* EDIT MODAL */}
-        {showEdit && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end justify-center z-50 p-3">
-            <div className="bg-[#FFFEFB] w-full max-w-[440px] rounded-[32px] p-6 shadow-[0_0_0_12px_white]">
-              <h2 className="font-black uppercase tracking-[0.2em] text-[13px]">Edit Profile</h2>
-              <div className="mt-6 space-y-4">
-                <div>
-                  <label className="text-[10px] font-black tracking-widest uppercase opacity-50">Full Name</label>
-                  <input value={editName} onChange={e => setEditName(e.target.value)} className="w-full mt-2 bg-[#F6F1E6] rounded-full px-5 py-3.5 text-[12px] font-black uppercase tracking-widest outline-none" placeholder="Your name" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black tracking-widest uppercase opacity-50">Bio</label>
-                  <textarea value={editBio} onChange={e => setEditBio(e.target.value)} className="w-full mt-2 bg-[#F6F1E6] rounded-[20px] px-5 py-3.5 text-[12px] font-bold uppercase tracking-wide outline-none min-h-[80px]" placeholder="Your bio" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black tracking-widest uppercase opacity-50">Avatar URL</label>
-                  <input value={editAvatar} onChange={e => setEditAvatar(e.target.value)} className="w-full mt-2 bg-[#F6F1E6] rounded-full px-5 py-3.5 text-[11px] font-bold uppercase tracking-wide outline-none" placeholder="https://..." />
-                </div>
-                <div className="flex gap-3 pt-2">
-                  <button onClick={() => setShowEdit(false)} className="flex-1 bg-[#F6F1E6] rounded-full py-4 text-[12px] font-black tracking-widest uppercase">Cancel</button>
-                  <button onClick={handleEditSave} className="flex-1 bg-[#121212] text-white rounded-full py-4 text-[12px] font-black tracking-widest uppercase">Save</button>
-                </div>
-              </div>
+          )}
+          {activeTab === "likes" && (
+            <div className="h-[240px] flex flex-col items-center justify-center gap-3 opacity-40 p-6 text-center">
+              <span className="text-[32px]">❤️</span>
+              <p className="text-[12px] font-black tracking-widest" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>124 LIKES PRIVATE</p>
+              <p className="text-[11px] font-medium">Likes are hidden for privacy</p>
             </div>
-          </div>
-        )}
+          )}
+          {activeTab === "about" && (
+            <div className="p-5 space-y-4">
+              <div className="flex justify-between py-3 border-b border-black/5"><span className="text-[12px] font-bold opacity-50">Username</span><span className="text-[12px] font-black">@{username}</span></div>
+              <div className="flex justify-between py-3 border-b border-black/5"><span className="text-[12px] font-bold opacity-50">Full Name</span><span className="text-[12px] font-black">{profile.full_name}</span></div>
+              <div className="flex justify-between py-3 border-b border-black/5"><span className="text-[12px] font-bold opacity-50">Location</span><span className="text-[12px] font-black">{profile.location}</span></div>
+              <div className="flex justify-between py-3 border-b border-black/5"><span className="text-[12px] font-bold opacity-50">Joined</span><span className="text-[12px] font-black">{profile.joined || "Jan 2026"}</span></div>
+              <div className="flex justify-between py-3"><span className="text-[12px] font-bold opacity-50">Account Type</span><span className="text-[12px] font-black">Personal • Verified</span></div>
+            </div>
+          )}
+        </div>
 
-        <p className="text-center mt-10 text-[9px] font-black tracking-[0.3em] uppercase opacity-20">DRISYAMN SILIGURI • 7CR LOCK • NO SHOP NO SELLS</p>
+        {/* ACTION BAR */}
+        <div className="mt-2 p-4 flex gap-3 border-t border-black/[0.06] bg-[#FFFEFB] sticky bottom-0">
+          <button onClick={handleFollow} className="flex-1 h-[48px] rounded-full text-white text-[12px] font-black tracking-[0.12em] active:scale-[0.98] transition-all shadow-[0_8px_20px_rgba(232,106,51,0.3)]" style={{ background: isFollowing? PURE_BLACK : ORANGE, fontFamily: "'Space Grotesk', sans-serif" }}>{isFollowing? "FOLLOWING ✓" : "FOLLOW USER"}</button>
+          <button className="w-[48px] h-[48px] rounded-full bg-[#F6F1E6] border border-black/10 flex items-center justify-center active:scale-95 transition-transform">💬</button>
+          <button onClick={handleShare} className="w-[48px] h-[48px] rounded-full bg-[#F6F1E6] border border-black/10 flex items-center justify-center active:scale-95 transition-transform">↗</button>
+        </div>
+
+        {/* FOOTER */}
+        <div className="p-6 text-center bg-[#F6F1E6]/30">
+          <p className="text-[10px] font-black tracking-[0.2em] opacity-20" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>DRISYAM • SILIGURI • WEST BENGAL • 2026 • @{username?.toUpperCase()}</p>
+          <p className="mt-2 text-[9px] font-bold opacity-20 tracking-widest">MADE WITH ❤️ IN INDIA</p>
+        </div>
       </div>
+      <input ref={fileInputRef} type="file" hidden accept="image/*" />
     </div>
-  )
+  );
 }

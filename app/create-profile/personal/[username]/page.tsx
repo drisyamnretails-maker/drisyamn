@@ -23,7 +23,6 @@ export default function CreateProfilePersonal(){
   const [cover, setCover] = useState<string | null>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
 
-  // Only Cover Editor
   const [showEditor, setShowEditor] = useState(false);
   const [editSrc, setEditSrc] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
@@ -43,7 +42,6 @@ export default function CreateProfilePersonal(){
     setForm(f => f.interests.includes(i)? {...f, interests: f.interests.filter(x=>x!==i)} : {...f, interests: [...f.interests, i]});
   }
 
-  // COVER -> Open Editor
   const handleCoverFile = (e:any)=>{
     const file = e.target.files?.[0];
     if(!file) return;
@@ -55,12 +53,10 @@ export default function CreateProfilePersonal(){
     e.target.value = "";
   }
 
-  // AVATAR -> Direct Auto Fit (No Editor)
   const handleAvatarFile = (e:any)=>{
     const file = e.target.files?.[0];
     if(!file) return;
     const url = URL.createObjectURL(file);
-    // Auto fit: directly set, object-cover will handle
     setAvatar(url);
     e.target.value = "";
   }
@@ -111,10 +107,11 @@ export default function CreateProfilePersonal(){
       if(user){
         await supabase.from("profiles").update({
           full_name: form.displayName, bio: form.bio, location: form.location, dob: form.dob, website: form.website, interests: form.interests, onboarding_done: true,
-          avatar_url: avatar, cover_url: cover
+          avatar_url: avatar, cover_url: cover, username: username
         }).eq("id", user.id);
       }
-      router.push(`/personal/${username}`);
+      // FIXED: Tera folder profile/personal me hai isliye yahi route hoga
+      router.push(`/profile/personal/${username}`);
     }catch(e){ console.log(e); }
     setLoading(false);
   };
@@ -147,7 +144,6 @@ export default function CreateProfilePersonal(){
       )}
 
       <div className="w-full max-w-[400px] bg-[#FFFEFB] rounded-[24px] overflow-hidden border border-black/[0.05] shadow-[0_0_0_8px_#fff,0_0_0_9px_rgba(0,0,0,0.05),0_20px_50px_rgba(0,0,0,0.12)] mb-10">
-
         <div className="w-full h-[148px] bg-[#F6F1E6] relative overflow-hidden cursor-pointer group" onClick={()=>coverInputRef.current?.click()}>
           {cover? <img src={cover} className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center gap-1.5"><span className="text-[26px] opacity-30">🖼️</span><span className="text-[10px] font-black tracking-[0.2em] opacity-30" style={{fontFamily:"'Space Grotesk', sans-serif"}}>TAP TO ADD COVER</span></div>}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all flex items-center justify-center">
@@ -155,7 +151,6 @@ export default function CreateProfilePersonal(){
           </div>
         </div>
 
-        {/* AVATAR AUTO FIT */}
         <div className="flex flex-col items-center -mt-[42px] relative z-10">
           <div className="w-[84px] h-[84px] rounded-full bg-white border-[4px] border-white shadow-[0_8px_20px_rgba(0,0,0,0.15)] flex items-center justify-center overflow-hidden cursor-pointer" onClick={()=>avatarInputRef.current?.click()}>
             {avatar? <img src={avatar} className="w-full h-full object-cover object-center" style={{objectFit:"cover"}} /> : <span className="text-[30px]">📸</span>}
