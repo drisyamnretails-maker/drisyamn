@@ -23,10 +23,14 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Only Drisyamn Heavy */}
+        {/* Drisyamn Extra Heavy */}
         <div className="mt-10 text-center">
-          <h1 className="font-serif text-[46px] leading-none text-[#1E293B]" style={{ fontWeight: 700, letterSpacing: "-0.04em", fontFamily: "serif" }}>Drisyamn</h1>
-          <p className="mt-3 text-[11px] tracking-[0.28em] text-[#94A3B8] uppercase" style={{ fontWeight: 400 }}>Discover Everything Around You</p>
+          <h1 className="font-serif text-[52px] leading-none text-[#1E293B]" style={{ fontWeight: 900, letterSpacing: "-0.05em", fontFamily: "serif" }}>
+            Drisyamn
+          </h1>
+          <p className="mt-4 text-[11px] tracking-[0.28em] text-[#94A3B8] uppercase" style={{ fontWeight: 400 }}>
+            Discover Everything Around You
+          </p>
         </div>
 
         <div className="mt-8 grid grid-cols-3 gap-3.5">
@@ -47,11 +51,21 @@ export default function HomePage() {
           ))}
         </div>
 
+        <div className="mt-6 rounded-[16px] bg-[#F8F5EE] border border-black/[0.03] p-3.5 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center">📍</div>
+          <div>
+            <p className="text-[12px] text-[#1E293B]" style={{ fontWeight: 400 }}>Siliguri • Matigara • Shivmandir</p>
+            <p className="text-[10.5px] text-[#64748B]" style={{ fontWeight: 400 }}>12k+ shops and services</p>
+          </div>
+        </div>
+
         <div className="mt-auto pt-8">
           <button onClick={() => router.push("/login")} className="w-full h-[54px] rounded-full text-white text-[13px] tracking-[0.14em] hover:bg-[#D45F2D] transition-all" style={{ background: "#E86A33", fontWeight: 400 }}>
             GET STARTED
           </button>
+          <p className="mt-3 text-center text-[10px] tracking-[0.12em] text-[#94A3B8]" style={{ fontWeight: 400 }}>SECURE • FAST • LOCAL</p>
         </div>
+
       </div>
     </div>
   );
