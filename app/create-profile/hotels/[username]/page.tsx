@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-// COLORS - DRISYAMN THEME
 const ORANGE = "#E86A33";
 const PAGE_BG = "#EDE6D3";
 const PURE_BLACK = "#0A0A0A";
@@ -11,10 +10,7 @@ const TEXT_GRAY = "#6B7280";
 const TEXT_LIGHT = "#9CA3AF";
 const GREEN = "#22C55E";
 const BORDER_LIGHT = "rgba(0,0,0,0.08)";
-const CARD_BG = "#F6F1E6";
-const WHITE_CARD = "#FFFEFB";
 
-// ROLE TYPE DEFINITION
 type RoleId =
   | "personal_retails"
   | "retail_wholesale"
@@ -26,7 +22,6 @@ type RoleId =
   | "services"
   | "stays_property";
 
-// ROLE ITEM INTERFACE
 interface RoleItem {
   id: RoleId;
   title: string;
@@ -34,10 +29,8 @@ interface RoleItem {
   tags: string[];
   count: string;
   icon: string;
-  desc: string;
 }
 
-// MAIN COMPONENT
 export default function SelectRolePage() {
   const { username } = useParams() as { username: string };
   const router = useRouter();
@@ -50,146 +43,136 @@ export default function SelectRolePage() {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
-  // ALL 9 ROLES DATA
   const ROLES: RoleItem[] = [
     {
       id: "personal_retails",
       title: "Personal Retails",
       sub: "Personal shopping & daily needs",
       tags: ["Personal", "Shopping", "Daily"],
-      count: "2.1K USERS",
+      count: "2.1k+",
       icon: "🛍️",
-      desc: "For personal retail shops",
     },
     {
       id: "retail_wholesale",
       title: "Retail & Wholesale Trading",
       sub: "Shops, wholesalers, distributors",
       tags: ["Shops", "Wholesale", "Trading"],
-      count: "1.8K USERS",
+      count: "1.8k+",
       icon: "🏪",
-      desc: "For wholesale business",
     },
     {
       id: "food_beverage",
       title: "Food & Beverage",
       sub: "Food stalls, restaurants, cafes",
       tags: ["Restaurants", "Cafes", "Kitchen"],
-      count: "3.2K USERS",
+      count: "3.2k+",
       icon: "🍔",
-      desc: "For food business",
     },
     {
       id: "furniture",
       title: "Furniture & Home Decor",
       sub: "Home furniture, interior decoration",
       tags: ["Furniture", "Decor", "Interior"],
-      count: "890 USERS",
+      count: "890+",
       icon: "🛋️",
-      desc: "For furniture shops",
     },
     {
       id: "electronics",
       title: "Electronics & Mobile",
       sub: "Mobile shops, electronics, repair",
       tags: ["Mobiles", "Laptops", "Repair"],
-      count: "1.5K USERS",
+      count: "1.5k+",
       icon: "📱",
-      desc: "For electronics shops",
     },
     {
       id: "fashion",
       title: "Fashion & Lifestyle",
       sub: "Boutiques, fashion stores, clothing",
       tags: ["Clothing", "Footwear", "Boutique"],
-      count: "2.4K USERS",
+      count: "2.4k+",
       icon: "👗",
-      desc: "For fashion business",
     },
     {
       id: "beauty_salon",
       title: "Beauty & Salon",
       sub: "Beauty parlours, spa, cosmetics",
       tags: ["Salon", "Spa", "Cosmetics"],
-      count: "1.1K USERS",
+      count: "1.1k+",
       icon: "💇",
-      desc: "For beauty parlours",
     },
     {
       id: "services",
       title: "Professional Services",
       sub: "Doctors, tutors, all professional services",
       tags: ["Doctors", "Tutors", "Services"],
-      count: "2.9K USERS",
+      count: "2.9k+",
       icon: "👨‍⚕️",
-      desc: "For service providers",
     },
     {
       id: "stays_property",
       title: "Hotels, Homestays & Real Estate",
-      sub: "Hotels, homestays, rent, sale properties",
+      sub: "Hotels, homestays, rent, sale - sliding cover + logo profile",
       tags: ["Hotels", "Homestays", "Real Estate"],
-      count: "1.2K USERS",
+      count: "NEW",
       icon: "🏨",
-      desc: "For hotels and property",
     },
   ];
 
-  // HANDLE CONTINUE CLICK
   const handleContinue = () => {
     setLoading(true);
-
     try {
       localStorage.setItem("drisyamn_role", selected);
       localStorage.setItem("drisyamn_username", username);
-      localStorage.setItem(
-        "drisyamn_role_title",
-        ROLES.find((r) => r.id === selected)?.title || ""
-      );
+      localStorage.setItem("drisyamn_selected_role_data", JSON.stringify(ROLES.find((r) => r.id === selected)));
     } catch (e) {
       console.log("localStorage error", e);
     }
 
     let finalRoute = "";
 
-    // FINAL ROUTES - FIXED FOR 404
-    // No business folder, only hotels and personal
-    if (selected === "personal_retails") {
-      finalRoute = `/create-profile/personal/${username}`;
-    } else if (selected === "retail_wholesale") {
-      finalRoute = `/create-profile/personal/${username}?type=retail_wholesale`;
-    } else if (selected === "food_beverage") {
-      finalRoute = `/create-profile/personal/${username}?type=food_beverage`;
-    } else if (selected === "furniture") {
-      finalRoute = `/create-profile/personal/${username}?type=furniture`;
-    } else if (selected === "electronics") {
-      finalRoute = `/create-profile/personal/${username}?type=electronics`;
-    } else if (selected === "fashion") {
-      finalRoute = `/create-profile/personal/${username}?type=fashion`;
-    } else if (selected === "beauty_salon") {
-      finalRoute = `/create-profile/personal/${username}?type=beauty_salon`;
-    } else if (selected === "services") {
-      finalRoute = `/profile/service/${username}`;
-    } else if (selected === "stays_property") {
-      // THIS IS YOUR ROUTE - FIXED
-      // create-profile/hotels/[username]/page.tsx
-      finalRoute = `/create-profile/hotels/${username}`;
-    } else {
-      finalRoute = `/create-profile/personal/${username}`;
+    // YAHI ROUTES HAI BHAI - TERE SCREENSHOT KE HISAB SE
+    switch (selected) {
+      case "personal_retails":
+        finalRoute = `/create-profile/personal/${username}`;
+        break;
+      case "retail_wholesale":
+        finalRoute = `/create-profile/personal/${username}?type=retail_wholesale`;
+        break;
+      case "food_beverage":
+        finalRoute = `/create-profile/personal/${username}?type=food_beverage`;
+        break;
+      case "furniture":
+        finalRoute = `/create-profile/personal/${username}?type=furniture`;
+        break;
+      case "electronics":
+        finalRoute = `/create-profile/personal/${username}?type=electronics`;
+        break;
+      case "fashion":
+        finalRoute = `/create-profile/personal/${username}?type=fashion`;
+        break;
+      case "beauty_salon":
+        finalRoute = `/create-profile/personal/${username}?type=beauty_salon`;
+        break;
+      case "services":
+        finalRoute = `/profile/service/${username}`;
+        break;
+      case "stays_property":
+        // YE TERA WALA ROUTE - create-profile/hotels/[username]/page.tsx
+        finalRoute = `/create-profile/hotels/${username}`;
+        break;
+      default:
+        finalRoute = `/create-profile/personal/${username}`;
     }
 
-    console.log("Final Route:", finalRoute);
+    console.log("Navigating to:", finalRoute);
 
     setTimeout(() => {
       router.push(finalRoute);
-    }, 400);
+    }, 500);
   };
 
-  // RENDER UI
   return (
     <div
       className="min-h-[100vh] w-full flex justify-center p-4 pt-8 overflow-y-auto"
@@ -205,7 +188,7 @@ export default function SelectRolePage() {
             "0 0 0 8px #fff, 0 0 0 9px rgba(0,0,0,0.05), 0 20px 50px rgba(0,0,0,0.12)",
         }}
       >
-        {/* HEADER SECTION */}
+        {/* HEADER */}
         <div className="text-center">
           <h1
             className="font-serif tracking-tight"
@@ -230,7 +213,7 @@ export default function SelectRolePage() {
           >
             Discover everything around you
           </p>
-          <div className="mt-6 flex flex-col items-center gap-1">
+          <div className="mt-5 flex flex-col items-center gap-2">
             <h2
               style={{
                 color: PURE_BLACK,
@@ -250,26 +233,27 @@ export default function SelectRolePage() {
             >
               Select what best describes your business
             </p>
-            <p className="mt-2 text-[10px] text-black/40 uppercase tracking-widest font-bold">
+            <p className="mt-1 text-[11px] text-black/30 uppercase tracking-widest font-bold">
               Welcome, {username}
             </p>
           </div>
         </div>
 
-        {/* ROLES LIST SECTION */}
+        {/* ROLES LIST */}
         <div className="mt-7 flex flex-col gap-[14px]">
           {ROLES.map((r) => {
             const active = selected === r.id;
             const isHovered = hovered === r.id;
+            const isNew = r.count === "NEW";
             return (
               <button
                 key={r.id}
                 onClick={() => setSelected(r.id)}
                 onMouseEnter={() => setHovered(r.id)}
                 onMouseLeave={() => setHovered(null)}
-                className="w-full text-left rounded-[16px] border px-4 py-[14px] flex justify-between items-start gap-3 transition-all duration-200 active:scale-[0.98]"
+                className={`w-full text-left rounded-[16px] border px-4 py-[14px] flex justify-between items-start gap-3 transition-all duration-200 active:scale-[0.98]`}
                 style={{
-                  backgroundColor: active? WHITE_CARD : CARD_BG,
+                  backgroundColor: active? "#FFFFFF" : "#F6F1E6",
                   borderColor: active? "rgba(0,0,0,0.18)" : BORDER_LIGHT,
                   boxShadow: active
                    ? "0 0 0 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.08)"
@@ -287,21 +271,32 @@ export default function SelectRolePage() {
                       border: `1px solid ${BORDER_LIGHT}`,
                     }}
                   >
-                    <span style={{ filter: active? "invert(1)" : "none" }}>
-                      {r.icon}
-                    </span>
+                    <span style={{ filter: active? "invert(1)" : "none" }}>{r.icon}</span>
                   </div>
                   <div className="flex-1">
-                    <p
-                      style={{
-                        color: LABEL_BLACK,
-                        fontSize: "14.5px",
-                        fontWeight: 750,
-                        lineHeight: "1.2",
-                      }}
-                    >
-                      {r.title}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p
+                        style={{
+                          color: LABEL_BLACK,
+                          fontSize: "14.5px",
+                          fontWeight: 750,
+                          lineHeight: "1.2",
+                        }}
+                      >
+                        {r.title}
+                      </p>
+                      {isNew && (
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[8px] font-black tracking-widest"
+                          style={{
+                            background: ORANGE,
+                            color: "#fff",
+                          }}
+                        >
+                          NEW
+                        </span>
+                      )}
+                    </div>
                     <p
                       style={{
                         color: TEXT_LIGHT,
@@ -328,17 +323,6 @@ export default function SelectRolePage() {
                         </span>
                       ))}
                     </div>
-                    <p
-                      className="mt-2"
-                      style={{
-                        color: TEXT_LIGHT,
-                        fontSize: "10px",
-                        fontWeight: 600,
-                        letterSpacing: "0.02em",
-                      }}
-                    >
-                      {r.count}
-                    </p>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0">
@@ -346,29 +330,71 @@ export default function SelectRolePage() {
                     className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200"
                     style={{
                       backgroundColor: active? GREEN : "#fff",
-                      border: `1.5px solid ${
-                        active? GREEN : "rgba(0,0,0,0.12)"
-                      }`,
+                      border: `1.5px solid ${active? GREEN : "rgba(0,0,0,0.12)"}`,
                       boxShadow: active? `0 0 0 3px ${GREEN}20` : "none",
                     }}
                   >
-                    {active && (
-                      <span className="text-white font-black text-[12px]">
-                        ✓
-                      </span>
-                    )}
+                    {active && <span className="text-white font-black text-[12px]">✓</span>}
                   </div>
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                    style={{
+                      color: isNew? ORANGE : TEXT_LIGHT,
+                      background: isNew? `${ORANGE}15` : "transparent",
+                    }}
+                  >
+                    {r.count}
+                  </span>
                 </div>
               </button>
             );
           })}
         </div>
 
+        {/* SELECTED INFO BOX */}
+        <div
+          className="mt-6 rounded-[14px] border p-3 flex items-start gap-3"
+          style={{
+            background: "#FFF7ED",
+            borderColor: `${ORANGE}20`,
+          }}
+        >
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white font-black text-[12px]"
+            style={{ background: ORANGE }}
+          >
+           !
+          </div>
+          <div>
+            <p
+              style={{
+                color: PURE_BLACK,
+                fontSize: "12px",
+                fontWeight: 700,
+              }}
+            >
+              Selected: {ROLES.find((r) => r.id === selected)?.title}
+            </p>
+            <p
+              style={{
+                color: TEXT_GRAY,
+                fontSize: "11px",
+                marginTop: "2px",
+                lineHeight: "1.4",
+              }}
+            >
+              {selected === "stays_property"
+               ? "You will be redirected to /create-profile/hotels/[username] - Cover slider + Logo + About + Story form"
+                : `You will be redirected to /create-profile/personal/${username} with ${selected} type`}
+            </p>
+          </div>
+        </div>
+
         {/* CONTINUE BUTTON */}
         <button
           onClick={handleContinue}
           disabled={loading}
-          className="mt-8 w-full h-[54px] rounded-full text-white text-[14px] font-black tracking-[0.08em] uppercase flex items-center justify-center gap-2 active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
+          className="mt-7 w-full h-[54px] rounded-full text-white text-[14px] font-black tracking-[0.08em] uppercase flex items-center justify-center gap-2 active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
           style={{
             background: loading? "#9CA3AF" : ORANGE,
             boxShadow: loading
@@ -386,15 +412,13 @@ export default function SelectRolePage() {
           )}
         </button>
 
-        {/* FOOTER */}
-        <div className="mt-5 text-center">
-          <p className="text-[10px] text-black/30 font-medium tracking-wide">
-            9 ROLES • PERSONAL + BUSINESS + STAYS + PROPERTY
-          </p>
-          <p className="mt-1 text-[9px] text-black/20">
-            {username} • Drisyamn Siliguri
-          </p>
-        </div>
+        <p className="mt-4 text-center text-[10px] text-black/30 font-medium tracking-wide">
+          9 ROLES • PERSONAL + BUSINESS + STAYS + PROPERTY
+        </p>
+
+        <p className="mt-2 text-center text-[10px] text-black/20">
+          Route: /create-profile/hotels/[username]/page.tsx
+        </p>
       </div>
     </div>
   );
