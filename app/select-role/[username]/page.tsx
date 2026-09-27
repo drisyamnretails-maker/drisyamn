@@ -106,10 +106,10 @@ export default function Page(){
         <button
           onClick={handleContinue}
           disabled={loading}
-          className="mt-6 w-full h-[52px] rounded-full text-white text-[14px] font-black tracking-[0.08em] uppercase disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] transition-all"
+          className="mt-6 w-full h-[52px] rounded-full text-white text-[12px] font-black tracking-[0.08em] uppercase disabled:opacity-70 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] transition-all"
           style={{
             background: PURE_BLACK,
-            boxShadow: "0 0 0 6px white, 0 10px 24px rgba(0,0,0,0.18)",
+            boxShadow: "0 0 0 6px white, 0 10px 24px rgba(219, 88, 6, 0.96)",
           }}
         >
           {loading? "ROUTING..." : `CONTINUE AS ${selectedRole?.title.toUpperCase()} →`}
