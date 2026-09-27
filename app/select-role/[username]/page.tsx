@@ -124,29 +124,37 @@ export default function Page(){
   }
 
   // -----------------------------------------------------
-  // MANUAL ROUTE - ALL TO PROFILE CREATE
+  // MANUAL ROUTE - ALL TO PROFILE CREATE WITH ROLE WISE PUSH
   // -----------------------------------------------------
-  const handleSelect = (roleId: RoleId) => {
-    setSelected(roleId);
-  };
-
   const handleContinue = () => {
-    // Set loading
     setLoading(true);
-
-    // Save to local storage
     localStorage.setItem("drisyamn_role", selected);
     localStorage.setItem("drisyamn_username", username);
-
-    // Find selected role
     const roleObj = ROLES.find(r=>r.id===selected);
     if(roleObj){
       localStorage.setItem("drisyamn_role_title", roleObj.title);
     }
 
-    // Route to profile create - SAME FOR ALL
-    // No auto route - only manual via button
-    router.push(`/create-profile/${username}`);
+    // ===== SAB ROLE KA ROUTE PUSH =====
+    if(selected === "personal_retails"){
+      router.push(`/create-profile/personal/${username}`);
+    } else if(selected === "retail_wholesale"){
+      router.push(`/create-profile/business/${username}?type=retail_wholesale`);
+    } else if(selected === "food_beverage"){
+      router.push(`/create-profile/business/${username}?type=food_beverage`);
+    } else if(selected === "furniture"){
+      router.push(`/create-profile/business/${username}?type=furniture`);
+    } else if(selected === "electronics"){
+      router.push(`/create-profile/business/${username}?type=electronics`);
+    } else if(selected === "fashion"){
+      router.push(`/create-profile/business/${username}?type=fashion`);
+    } else if(selected === "grocery"){
+      router.push(`/create-profile/business/${username}?type=grocery`);
+    } else if(selected === "beauty_salon"){
+      router.push(`/create-profile/business/${username}?type=beauty_salon`);
+    } else if(selected === "services"){
+      router.push(`/create-profile/business/${username}?type=services`);
+    }
   };
 
   // -----------------------------------------------------
@@ -166,7 +174,6 @@ export default function Page(){
       <div
         className="w-full max-w-[400px] bg-[#FFFEFB] rounded-[24px] px-6 py-6 mb-8 border border-black/[0.05] shadow-[0_0_0_8px_#fff,0_0_0_9px_rgba(0,0,0,0.05),0_20px_50px_rgba(0,0,0,0.12)]"
       >
-
         {/* HEADER - NO HI HANUMAAN, NO STEP BOX */}
         <div className="text-center">
           <h1
@@ -194,11 +201,10 @@ export default function Page(){
           {ROLES.map((r)=>{
             const active = selected===r.id;
             const isHovered = hovered===r.id;
-
             return(
               <button
                 key={r.id}
-                onClick={()=>handleSelect(r.id)}
+                onClick={()=>setSelected(r.id)}
                 onMouseEnter={()=>setHovered(r.id)}
                 onMouseLeave={()=>setHovered(null)}
                 className={`
@@ -216,7 +222,7 @@ export default function Page(){
                   transition-all
                   duration-200
                   ${active
-                   ? "bg-white border-black/20 shadow-[0_0_0_4px_rgba(0,0,0,0.05)]"
+                  ? "bg-white border-black/20 shadow-[0_0_0_4px_rgba(0,0,0,0.05)]"
                     : "bg-[#F6F1E6] border-black/10 hover:bg-white hover:border-black/15"
                   }
                 `}
