@@ -163,7 +163,7 @@ export default function SelectRolePage() {
     } else if (selected === "retail_wholesale") {
       finalRoute = `/create-profile/personal/${username}?type=retail_wholesale`;
     } else if (selected === "food_beverage") {
-      finalRoute = `/create-profile/personal/${username}?type=food_beverage`;
+      finalRoute = `/create-profile/cafe/${username}?type=food_beverage`;
     } else if (selected === "furniture") {
       finalRoute = `/create-profile/personal/${username}?type=furniture`;
     } else if (selected === "electronics") {
