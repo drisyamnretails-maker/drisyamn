@@ -1,157 +1,162 @@
-'use client'
-import { useEffect, useState, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+"use client";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
-const PAGE_BG = "#EDE6D3"
+const C = {
+  bg: "#EDE6D3",
+  card: "#FFFEFB",
+  soft: "#F6F1E6",
+  orange: "#E86A33",
+  black: "#121212",
+};
 
-export default function PersonalProfilePage() {
-  const params = useParams()
-  const router = useRouter()
-  const username = params.username as string
+export default function PersonalPage(){
+  const { username } = useParams() as {username: string};
+  const [profile, setProfile] = useState<any>(null);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [friends, setFriends] = useState<any[]>([]);
+  const [myId, setMyId] = useState("");
+  const [status, setStatus] = useState("none");
+  const [tab, setTab] = useState("posts");
+  const [showFriends, setShowFriends] = useState(false);
 
-  const [profile, setProfile] = useState<any>(null)
-  const [me, setMe] = useState<any>(null)
-  const [stats, setStats] = useState({ posts: 0, friends: 0 })
-  const [friendStatus, setFriendStatus] = useState<'none'|'requested'|'incoming'|'friends'>('none')
-  const [posts, setPosts] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
-  const [fileType, setFileType] = useState<'photo'|'video'|'cover'>('photo')
-
-  useEffect(()=>{ if(username) load() }, [username])
+  useEffect(()=>{ load(); }, [username]);
 
   const load = async () => {
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser();
+    if(user) setMyId(user.id);
 
+    // 1. Profile
+    const { data: prof } = await supabase.from("profiles").select("*").eq("username", username).single();
+    if(!prof) return;
+    setProfile(prof);
+
+    // 2. Posts - HOMEFEED WALA HI - Yahi main point
+    const { data: postData } = await supabase.from("posts").select("*")
+     .eq("user_id", prof.id).order("created_at", {ascending:false});
+    setPosts(postData || []);
+
+    // 3. Friends + Status
     if(user){
-      const { data: my } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
-      setMe(my)
+      const res = await fetch(`/api/friends/action?userId=${prof.id}&myId=${user.id}`);
+      const j = await res.json();
+      setFriends(j.friends || []);
+      setStatus(j.status);
     }
+  };
 
-    const { data: p, error } = await supabase.from('profiles').select('*').eq('username', username).maybeSingle()
+  const handleFriend = async (action: string) => {
+    await fetch("/api/friends/action",{method:"POST", body: JSON.stringify({ action, myId, otherId: profile.id })});
+    if(action==="request") setStatus("requested");
+    if(action==="accept") setStatus("friends");
+    if(action==="cancel"||action==="reject"||action==="unfriend") setStatus("none");
+    load();
+  };
 
-    if(error ||!p){
-      console.log("Profile not found:", error)
-      setProfile(null)
-      setLoading(false)
-      return
-    }
-
-    setProfile(p)
-
-    // Stats
-    const { count: postCount } = await supabase.from('posts').select('id', { count:'exact', head:true }).eq('user_id', p.id)
-    const { count: friendsCount } = await supabase.from('friendships').select('id', { count:'exact', head:true }).or(`user1.eq.${p.id},user2.eq.${p.id}`).eq('status','friends')
-
-    const { data: allPosts } = await supabase.from('posts').select('*').eq('user_id', p.id).order('created_at',{ascending:false})
-
-    setStats({ posts: postCount||0, friends: friendsCount||0 })
-    setPosts(allPosts||[])
-
-    if(user && user.id!== p.id){
-      const { data: rel } = await supabase.from('friendships').select('*').or(`and(user1.eq.${user.id},user2.eq.${p.id}),and(user1.eq.${p.id},user2.eq.${user.id})`).maybeSingle()
-      if(rel){
-        if(rel.status==='pending' && rel.user1===user.id) setFriendStatus('requested')
-        else if(rel.status==='pending') setFriendStatus('incoming')
-        else setFriendStatus('friends')
-      }
-    }
-
-    setLoading(false)
-  }
-
-  const handleFriend = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if(!user) return alert('Login kar pehle')
-    if(friendStatus==='none'){
-      await supabase.from('friendships').insert({ user1: user.id, user2: profile.id, status:'pending' })
-      setFriendStatus('requested')
-    } else if(friendStatus==='incoming'){
-      await supabase.from('friendships').update({ status:'friends' }).eq('user1', profile.id).eq('user2', user.id)
-      setFriendStatus('friends')
-    } else {
-      await supabase.from('friendships').delete().or(`and(user1.eq.${user.id},user2.eq.${profile.id}),and(user1.eq.${profile.id},user2.eq.${user.id})`)
-      setFriendStatus('none')
-    }
-  }
-
-  const triggerUpload = (type:'photo'|'video'|'cover') => { setFileType(type); fileRef.current?.click() }
-
-  const onFileChange = async (e:any) => {
-    const file = e.target.files?.[0]; if(!file ||!profile) return
-    setUploading(true)
-    try{
-      const ext = file.name.split('.').pop()
-      const path = `${profile.id}/${fileType}_${Date.now()}.${ext}`
-      await supabase.storage.from('posts').upload(path, file, { upsert:true })
-      const { data } = supabase.storage.from('posts').getPublicUrl(path)
-      if(fileType==='cover'){
-        await supabase.from('profiles').update({ cover_url: data.publicUrl }).eq('id', profile.id)
-        setProfile({...profile, cover_url: data.publicUrl})
-      } else {
-        await supabase.from('posts').insert({ user_id: profile.id, image_url: data.publicUrl, type: fileType })
-        load()
-      }
-    }catch(err:any){ alert(err.message) }
-    setUploading(false)
-  }
-
-  if(loading) return <div className="min-h-screen flex items-center justify-center font-black" style={{background:PAGE_BG}}>Loading {username}...</div>
-
-  if(!profile) return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{background:PAGE_BG}}>
-      <div className="bg-white rounded-[32px] p-8 text-center shadow-xl max-w-[360px] w-full">
-        <p className="text-[48px]">😕</p>
-        <p className="font-black text-[18px] mt-2">User not found</p>
-        <p className="text-[13px] opacity-50 mt-1">@{username}</p>
-        <p className="text-[11px] opacity-40 mt-3">Thoda wait kar, Supabase me profile banne me 2 sec lagta hai. Refresh mar.</p>
-        <button onClick={()=>router.push('/')} className="mt-5 w-full h-12 bg-black text-white rounded-full text-[12px] font-bold">Go Home</button>
-        <button onClick={()=>load()} className="mt-3 w-full h-12 bg-[#F6F1E6] text-black rounded-full text-[12px] font-bold">Refresh</button>
-      </div>
-    </div>
-  )
-
-  const isOwn = me?.id===profile.id
+  if(!profile) return <div style={{background:C.bg}} className="min-h-screen p-10 font-black">LOADING...</div>;
+  const isOwn = myId === profile.id;
 
   return (
-    <div className="min-h-screen pb-[130px]" style={{background:PAGE_BG}}>
-      <input ref={fileRef} type="file" hidden accept={fileType==='video'?'video/*':'image/*'} onChange={onFileChange} />
-      <div className="max-w-[480px] mx-auto">
-        <div className="p-3">
-          <div className="relative h-[220px] rounded-[32px] overflow-hidden bg-[#EFE9DE] shadow-xl">
-            <img src={profile.cover_url || `https://picsum.photos/seed/${profile.id}/800/400`} className="w-full h-full object-cover" alt="" />
-            {isOwn && <button onClick={()=>triggerUpload('cover')} className="absolute top-4 right-4 h-9 px-4 rounded-full bg-white/90 backdrop-blur-xl text-[12px] font-bold shadow">{uploading?'...':'✎ Change'}</button>}
-            <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">
-              <div className="w-[96px] h-[96px] rounded-full p-[3px] bg-white shadow-xl">
-                <div className="w-full h-full rounded-full bg-[#EDE6D3] flex items-center justify-center text-[36px] font-black text-[#1F3A4A]">
-                  {profile.full_name?.[0]?.toUpperCase()}
-                </div>
-              </div>
-            </div>
+    <div className="min-h-screen flex justify-center p-3" style={{background:C.bg}}>
+      <div className="w-full max-w-[440px] rounded-[32px] overflow-hidden shadow-[0_0_0_12px_white]" style={{background:C.card}}>
+        {/* COVER */}
+        <div className="h-[168px] w-full relative" style={{background:`linear-gradient(135deg, ${C.soft}, #fff)`}}>
+          <div className="absolute -bottom-6 left-6 w-[96px] h-[96px] rounded-[28px] border-[5px] border-white bg-white shadow-xl" style={{background:C.soft}} />
+        </div>
+
+        {/* INFO */}
+        <div className="px-6 pt-10 pb-6">
+          <h1 className="text-[26px] font-black tracking-[-0.03em] leading-none" style={{color:C.black}}>{profile.full_name || profile.username}</h1>
+          <p className="text-[12px] font-bold tracking-widest opacity-50 mt-1">@{profile.username?.toUpperCase()} • SILIGURI</p>
+          <p className="mt-3 text-[14px] leading-[1.4] font-medium opacity-80">{profile.bio || "Drisyamn creator. Living the vibe."}</p>
+
+          {/* STATS - Tera 7cr wala box style */}
+          <div className="mt-5 grid grid-cols-4 gap-2">
+            <div className="rounded-[16px] h-[64px] flex flex-col items-center justify-center" style={{background:C.black, color:"white"}}><b className="text-[16px]">{posts.length}</b><span className="text-[9px] font-black tracking-widest">POSTS</span></div>
+            <div className="rounded-[16px] h-[64px] flex flex-col items-center justify-center" style={{background:C.soft}}><b className="text-[16px]">{profile.followers_count || "12k"}</b><span className="text-[9px] font-black tracking-widest opacity-60">FOLLOWERS</span></div>
+            <div className="rounded-[16px] h-[64px] flex flex-col items-center justify-center" style={{background:C.soft}}><b className="text-[16px]">{profile.following_count || "340"}</b><span className="text-[9px] font-black tracking-widest opacity-60">FOLLOWING</span></div>
+            <button onClick={()=>setShowFriends(true)} className="rounded-[16px] h-[64px] flex flex-col items-center justify-center border" style={{background:C.soft}}><b className="text-[16px]">{friends.length}</b><span className="text-[9px] font-black tracking-widest opacity-60">FRIENDS →</span></button>
+          </div>
+
+          {/* ACTIONS */}
+          <div className="mt-6 flex gap-2">
+            {isOwn? (
+              <>
+                <button className="flex-1 h-[48px] rounded-full font-black text-[13px] tracking-widest text-white" style={{background:C.black}}>EDIT PROFILE</button>
+                <button className="w-[48px] h-[48px] rounded-full font-black" style={{background:C.soft}}>↗</button>
+              </>
+            ) : status==="none"? (
+              <>
+                <button onClick={()=>handleFriend("request")} className="flex-1 h-[48px] rounded-full font-black text-[13px] tracking-widest text-white" style={{background:C.orange}}>+ ADD FRIEND</button>
+                <button className="flex-1 h-[48px] rounded-full font-black text-[13px] tracking-widest" style={{background:C.soft}}>FOLLOW</button>
+              </>
+            ) : status==="requested"? (
+              <button onClick={()=>handleFriend("cancel")} className="flex-1 h-[48px] rounded-full font-black text-[13px]" style={{background:C.soft}}>REQUESTED • TAP TO CANCEL</button>
+            ) : status==="incoming"? (
+              <>
+                <button onClick={()=>handleFriend("accept")} className="flex-1 h-[48px] rounded-full font-black text-white" style={{background:C.orange}}>ACCEPT</button>
+                <button onClick={()=>handleFriend("reject")} className="flex-1 h-[48px] rounded-full font-black" style={{background:C.soft}}>REJECT</button>
+              </>
+            ) : (
+              <>
+                <button onClick={()=>handleFriend("unfriend")} className="flex-1 h-[48px] rounded-full font-black text-white text-[13px]" style={{background:C.black}}>FRIENDS ✓</button>
+                <button className="flex-1 h-[48px] rounded-full font-black text-white text-[13px]" style={{background:C.orange}}>MESSAGE</button>
+              </>
+            )}
+          </div>
+
+          {/* TABS */}
+          <div className="mt-8 p-1 rounded-full flex" style={{background:C.soft}}>
+            {["posts","friends","about"].map(t=>(
+              <button key={t} onClick={()=>setTab(t)} className={`flex-1 h-[36px] rounded-full text-[11px] font-black tracking-widest ${tab===t?"text-white":"opacity-40"}`} style={{background: tab===t?C.black:"transparent"}}>{t.toUpperCase()}</button>
+            ))}
           </div>
         </div>
-        <div className="px-3 space-y-3 mt-14">
-          <div className="bg-white rounded-[32px] p-6 pt-8 shadow-[0_12px_40px_rgba(0,0,0,0.06)] text-center">
-            <h1 className="text-[28px] font-black tracking-tight leading-none text-[#1F3A4A]">{profile.full_name}</h1>
-            <p className="text-[11px] font-bold tracking-widest opacity-30 uppercase mt-2">@{profile.username} • SILIGURI</p>
-            <p className="text-[14px] opacity-60 mt-3">{profile.bio || `Hi, I am ${profile.full_name}`}</p>
-            <div className="grid grid-cols-2 mt-6 bg-[#F6F1E6] rounded-[20px] p-3">
-              <div className="text-center"><p className="text-[22px] font-black text-[#1F3A4A]">{stats.posts}</p><p className="text-[10px] font-bold opacity-40">POSTS</p></div>
-              <div className="text-center border-l border-black/10"><p className="text-[22px] font-black text-[#1F3A4A]">{stats.friends}</p><p className="text-[10px] font-bold opacity-40">FRIENDS</p></div>
+
+        {/* CONTENT */}
+        <div className="px-3 pb-6 min-h-[320px]">
+          {tab==="posts" && (
+            <div className="grid grid-cols-2 gap-2">
+              {posts.map((p:any)=>(
+                <div key={p.id} className="aspect-[4/5] rounded-[20px] overflow-hidden relative" style={{background:C.soft}}>
+                  {p.image_url? <img src={p.image_url} className="w-full h-full object-cover"/> : <div className="p-4 text-[12px] font-bold">{p.caption}</div>}
+                  <div className="absolute bottom-2 left-2 right-2 flex justify-between text-[10px] font-black">
+                    <span className="px-2 py-1 rounded-full bg-white/90">♥ {p.likes || 0}</span>
+                    <span className="px-2 py-1 rounded-full bg-white/90">💬 {p.comments || 0}</span>
+                  </div>
+                </div>
+              ))}
+              {posts.length===0 && <div className="col-span-2 py-20 text-center opacity-30 font-black text-[12px] tracking-widest">NO POSTS YET<br/>HOMEFEED PE POST DALO, YAHI DIKHEGA</div>}
             </div>
-            {!isOwn && <button onClick={handleFriend} className={`mt-5 w-full h-[52px] rounded-full font-black text-[13px] ${friendStatus==='friends'?'bg-[#F6F1E6] text-black':'bg-black text-white'}`}>{friendStatus==='none'?'Add Friend':friendStatus==='requested'?'Requested':friendStatus==='incoming'?'Accept Request':'Friends ✓'}</button>}
-            {isOwn && <button onClick={()=>router.push('/')} className="mt-5 w-full h-[52px] rounded-full font-black text-[12px] bg-[#F6F1E6] text-black">GO TO HOMEFEED</button>}
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {posts.length===0 && <div className="col-span-2 bg-white rounded-[24px] p-10 text-center opacity-40 text-[13px] font-bold">No posts yet. Add a photo!</div>}
-            {posts.map((po:any)=><div key={po.id} className="bg-white rounded-[24px] overflow-hidden aspect-square"><img src={po.image_url} className="w-full h-full object-cover" /></div>)}
-          </div>
+          )}
+
+          {tab==="friends" && (
+            <div className="space-y-2">
+              {friends.map((_:any,i:number)=>(<div key={i} className="h-[56px] rounded-[16px] px-4 flex items-center justify-between" style={{background:C.soft}}><div className="flex gap-3 items-center"><div className="w-8 h-8 rounded-full bg-white"/><span className="font-bold text-[13px]">Friend {i+1}</span></div><span>→</span></div>))}
+              {friends.length===0 && <p className="text-center py-10 opacity-30 font-black text-[12px]">NO FRIENDS YET</p>}
+            </div>
+          )}
+
+          {tab==="about" && (
+            <div className="rounded-[20px] p-5 space-y-3" style={{background:C.soft}}>
+              <p className="text-[13px] font-medium"><b className="font-black">BIO:</b> {profile.bio}</p>
+              <p className="text-[13px] font-medium"><b className="font-black">LOCATION:</b> Siliguri, West Bengal</p>
+              <p className="text-[13px] font-medium"><b className="font-black">JOINED:</b> {new Date(profile.created_at).toDateString()}</p>
+            </div>
+          )}
         </div>
       </div>
-      {isOwn && <div className="fixed bottom-0 left-0 right-0 p-4 pb-[max(16px,env(safe-area-inset-bottom))] bg-gradient-to-t from-[#EDE6D3] to-transparent"><div className="max-w-[480px] mx-auto flex justify-center"><div className="bg-[#111] rounded-full p-1.5 flex gap-1.5 shadow-xl"><button onClick={()=>triggerUpload('photo')} className="h-11 px-6 rounded-full bg-white text-black font-bold text-[12px]">📷 Photo</button><button onClick={()=>triggerUpload('video')} className="h-11 px-6 rounded-full bg-white/10 text-white font-bold text-[12px]">▶ Video</button></div></div></div>}
+
+      {/* FRIENDS MODAL */}
+      {showFriends && (
+        <div className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-end justify-center p-3">
+          <div className="w-full max-w-[440px] rounded-[28px] bg-white max-h-[70vh] overflow-hidden">
+            <div className="p-5 flex justify-between items-center border-b"><b className="font-black tracking-widest">FRIENDS {friends.length}</b><button onClick={()=>setShowFriends(false)} className="w-9 h-9 rounded-full" style={{background:C.soft}}>✕</button></div>
+            <div className="p-3 space-y-2 overflow-auto">{friends.map((_:any,i:number)=>(<div key={i} className="flex gap-3 p-3 rounded-xl" style={{background:C.soft}}><div className="w-10 h-10 rounded-full bg-white"/><div><p className="font-black text-[13px]">Friend {i+1}</p><p className="text-[11px] opacity-50">@username</p></div></div>))}</div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
