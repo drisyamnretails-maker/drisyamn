@@ -1,69 +1,171 @@
-import Image from "next/image";
+"use client";
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
-export default function Home() {
+export default function WelcomePage() {
+  const router = useRouter();
+  const [press, setPress] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  // Check karo user old hai ya new
+  const [isOldUser, setIsOldUser] = useState(false);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      // 1. Kya supabase me session hai?
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsOldUser(true);
+      } else {
+        // 2. Kya localStorage me flag hai ki pehle account bana tha?
+        const hasAccount = localStorage.getItem('drisyamn_has_account');
+        if (hasAccount === 'true') {
+          setIsOldUser(true);
+        }
+      }
+      setChecking(false);
+    };
+    checkUser();
+  }, []);
+
+  const handleGetStarted = async () => {
+    // Agar already logged in hai toh sidha homefeed
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      router.push('/homefeed');
+      return;
+    }
+
+    if (isOldUser) {
+      // Old user / Logout wala -> Login
+      router.push('/login');
+    } else {
+      // New user -> Signup
+      router.push('/signup');
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+    <div style={{
+      minHeight: '100dvh',
+      width: '100%',
+      backgroundColor: '#F6F1E8',
+      backgroundImage: `radial-gradient(ellipse at top, rgba(200,168,106,0.08) 0%, transparent 60%), radial-gradient(ellipse at bottom, rgba(200,168,106,0.12) 0%, transparent 60%)`,
+      display: 'flex',
+      justifyContent: 'center',
+    }}>
+      <style>{`
+        @media (min-width: 768px) {
+          .drisyamn-top { padding-top: 48px !important; }
+        }
+        @media (max-width: 767px) {
+          .drisyamn-top { padding-top: 72px !important; }
+        }
+      `}</style>
+
+      <div style={{
+        width: '100%',
+        maxWidth: '440px',
+        minHeight: '100dvh',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        padding: '0 32px',
+        boxSizing: 'border-box',
+        alignItems: 'center',
+      }}>
+
+        <div className="drisyamn-top" style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingTop: '48px' }}>
+          <h1 style={{
+            fontFamily: 'Georgia, serif',
+            fontSize: 'clamp(42px, 11vw, 56px)',
+            fontWeight: '400',
+            letterSpacing: '-0.02em',
+            background: 'linear-gradient(90deg, #2D2415 0%, #5A4A32 30%, #8C6F3A 65%, #B89B5E 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            margin: '0',
+            textAlign: 'center',
+          }}>
+            Drisyamn
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+        </div>
+
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', paddingBottom: '120px', width: '100%' }}>
+          
+          <h2 style={{
+            fontFamily: 'Georgia, Times New Roman, serif',
+            fontSize: 'clamp(48px, 12.5vw, 66px)',
+            fontWeight: '500',
+            lineHeight: '0.88',
+            letterSpacing: '-0.03em',
+            color: '#0A0A0A',
+            margin: '0',
+            textAlign: 'center',
+          }}>
+            Discover<br />
+            everything<br />
+            around you
+          </h2>
+
+          <div style={{ height: '22px' }} />
+
+          <p style={{
+            fontFamily: 'Georgia, serif',
+            fontSize: 'clamp(15px, 4vw, 17px)',
+            lineHeight: '1.6',
+            color: '#5C4A32',
+            maxWidth: '310px',
+            margin: '0 auto',
+            fontWeight: '400',
+            textAlign: 'center',
+          }}>
+            Where your local community connects — People, Places & Businesses around you
           </p>
+
+          <div style={{ height: '38px' }} />
+
+          <div style={{
+            width: '190px',
+            height: '1px',
+            background: 'linear-gradient(90deg, transparent 0%, #D4B483 20%, #B89B5E 50%, #D4B483 80%, transparent 100%)',
+          }} />
+
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <div style={{ position: 'absolute', bottom: '0', left: '0', right: '0', padding: '0 32px 44px 32px', boxSizing: 'border-box' }}>
+          <button
+            onMouseDown={() => setPress(true)}
+            onMouseUp={() => setPress(false)}
+            onMouseLeave={() => setPress(false)}
+            onTouchStart={() => setPress(true)}
+            onTouchEnd={() => setPress(false)}
+            onClick={handleGetStarted}
+            disabled={checking}
+            style={{
+              width: '100%',
+              height: '60px',
+              borderRadius: '14px',
+              border: '1px solid #C8A86A',
+              backgroundColor: press ? '#FFFFFF' : '#F3EBD9',
+              color: '#2D2415',
+              fontFamily: 'Georgia, serif',
+              fontSize: '18px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transform: press ? 'scale(0.97)' : 'scale(1)',
+              transition: 'all 0.18s ease-out',
+              boxShadow: press ? 'inset 0 1px 4px rgba(0,0,0,0.08)' : '0 10px 30px rgba(200,168,106,0.22), 0 2px 8px rgba(0,0,0,0.07)',
+              opacity: checking ? 0.6 : 1
+            }}
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {checking ? 'Loading...' : 'Get Started'}
+          </button>
         </div>
-      </main>
+
+      </div>
     </div>
   );
 }
