@@ -11,8 +11,7 @@ const supabase = createClient(
 
 export default function ChatDetailPage() {
   const router = useRouter();
-  const params = useParams();
-  const chatId = (params.id as string) || "test-chat";
+  const chatId = (params.id) || "test-chat";
   const myId = "user_123";
 
   const [text, setText] = useState("");
