@@ -9,7 +9,7 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-export default function ChatDetailPage() {
+export default function ChatDetailPage({params}: {params: {id: string} }) {
   const router = useRouter();
   const chatId = (params.id) || "test-chat";
   const myId = "user_123";
