@@ -1,7 +1,6 @@
 "use client";
-export const dynamic = 'force-dynamic';
 import { useState, useRef, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { Camera, ImageIcon, Video, X, Send, Sparkles, Sun, Droplets, Phone, PhoneOff, Mic, MicOff, Volume2 } from "lucide-react";
 
