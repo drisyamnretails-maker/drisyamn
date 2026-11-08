@@ -19,7 +19,7 @@ export default function WelcomePage() {
         setIsOldUser(true);
       } else {
         // 2. Kya localStorage me flag hai ki pehle account bana tha?
-        const hasAccount = localStorage.getItem('drisyamn_has_account');
+        const hasAccount = localStorage.getItem('Tasomi_has_account');
         if (hasAccount === 'true') {
           setIsOldUser(true);
         }
@@ -57,10 +57,10 @@ export default function WelcomePage() {
     }}>
       <style>{`
         @media (min-width: 768px) {
-          .drisyamn-top { padding-top: 48px !important; }
+          .Tasomi-top { padding-top: 48px !important; }
         }
         @media (max-width: 767px) {
-          .drisyamn-top { padding-top: 72px !important; }
+          .Tasomi-top { padding-top: 72px !important; }
         }
       `}</style>
 
@@ -76,7 +76,7 @@ export default function WelcomePage() {
         alignItems: 'center',
       }}>
 
-        <div className="drisyamn-top" style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingTop: '48px' }}>
+        <div className="Tasomi-top" style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingTop: '48px' }}>
           <h1 style={{
             fontFamily: 'Georgia, serif',
             fontSize: 'clamp(42px, 11vw, 56px)',
@@ -89,7 +89,7 @@ export default function WelcomePage() {
             margin: '0',
             textAlign: 'center',
           }}>
-            Drisyamn
+            Tasomi
           </h1>
         </div>
 

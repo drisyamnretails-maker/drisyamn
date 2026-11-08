@@ -11,7 +11,7 @@ const DUMMY: Profile[] = [
 ];
 
 const ADS: Ad[] = [
-  { id:'ad1', title:'Find Any Service Expert', desc:'All services on Drisyamn', image:'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800', cta_text:'Book Now', cta_link:'/offers' },
+  { id:'ad1', title:'Find Any Service Expert', desc:'All services on Tasomi', image:'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800', cta_text:'Book Now', cta_link:'/offers' },
 ];
 
 export default function AllServicesPage() {
@@ -175,7 +175,7 @@ export default function AllServicesPage() {
         `}</style>
 
         <div className="hh-top">
-          <div className="hh-logo" onClick={() => router.push('/homefeed')}>Drisyamn</div>
+          <div className="hh-logo" onClick={() => router.push('/homefeed')}>Tasomi</div>
           <div className="hh-nav">
             <div className="nav-item" onClick={() => router.push('/homefeed')}><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3z"/></svg>Home</div>
             <div className="nav-item" onClick={() => router.push('/homefeed/messages')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 10h8M8 14h4M21 12c0 4-3.5 7-9 7-1 0-2 0-3-.4L3 20l1.5-4.5C3.5 13.9 3 13 3 12c0-5 4-9 9-9s9 4 9 9z"/></svg>Message</div>

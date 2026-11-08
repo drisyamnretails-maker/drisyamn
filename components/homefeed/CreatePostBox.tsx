@@ -187,7 +187,7 @@ export default function CreatePostBox({ activeTab, onPostCreated }: { activeTab:
     <div style={{ position:'fixed', inset:0, zIndex:99, background:'#F8F3EB', display:'flex', flexDirection:'column' }}>
       <div style={{ height:56, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 16px' }}>
         <div onClick={()=>setShowEditor(false)} style={{ fontSize:24, cursor:'pointer' }}>‹</div>
-        <div style={{ fontFamily:'serif', fontSize:26, fontWeight:700 }}>Drisyamn</div>
+        <div style={{ fontFamily:'serif', fontSize:26, fontWeight:700 }}>Tasomi</div>
         <div onClick={()=>setShowEditor(false)} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid #2D2415', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>✕</div>
       </div>
       <div ref={containerRef} style={{ position:'relative', margin:'0 12px', borderRadius:18, overflow:'hidden', height:340, background:'#E89A3A' }}

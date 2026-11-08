@@ -112,7 +112,7 @@ export default function CreateProfilePage() {
       const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
       if (error) throw error;
 
-      localStorage.setItem('drisyamn_has_account', 'true');
+      localStorage.setItem('Tasomi_has_account', 'true');
       router.push('/profile');
     } catch (err: any) { alert('Error: ' + err.message); } finally { setLoading(false); setUploading(null); }
   };

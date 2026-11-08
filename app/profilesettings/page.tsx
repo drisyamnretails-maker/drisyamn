@@ -136,7 +136,7 @@ export default function ProfileSettingsPage() {
 
         <div className="ps-footer-links">
           <div className="ps-delete" onClick={handleDelete}>Delete Account</div>
-          <div className="ps-version">App Version v1.0.0 • About Drisyamn</div>
+          <div className="ps-version">App Version v1.0.0 • About Tasomi</div>
         </div>
       </div>
     </div>

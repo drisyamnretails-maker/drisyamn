@@ -6,7 +6,7 @@ export default function WelcomePage() {
         
         {/* 1. Logo - Top */}
         <div className="pt-[32px] sm:pt-[48px] flex justify-center">
-          <h1 className="font-serif text-[26px] tracking-[0.32em] font-light text-[#0A0A0A]">Drisyamn</h1>
+          <h1 className="font-serif text-[26px] tracking-[0.32em] font-light text-[#0A0A0A]">Tasomi</h1>
         </div>
 
         {/* Spacer - Logo aur Title ke beech ka bada gap */}
@@ -27,7 +27,7 @@ export default function WelcomePage() {
         <div className="flex justify-center px-2">
           <p className="text-center text-[#0A0A0A] font-sans font-[450] leading-[1.55] 
                         text-[16.5px] sm:text-[17px] max-w-[330px]">
-            Why Drisyamn? Because every local business has a story. We bring cafes, shops, hotels, doctors and creators together in one place where people discover you for who you are, not just what you sell.
+            Why Tasomi? Because every local business has a story. We bring cafes, shops, hotels, doctors and creators together in one place where people discover you for who you are, not just what you sell.
           </p>
         </div>
 

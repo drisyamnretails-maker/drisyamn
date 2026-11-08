@@ -39,7 +39,7 @@ export default function SignupPage() {
         let p = email.replace(/\s/g, '');
         if (!p.startsWith('+')) p = p.startsWith('91') ? `+${p}` : `+91${p}`;
         phone = p;
-        email = `${p.replace(/\+/g, '')}@drisyamn.com`;
+        email = `${p.replace(/\+/g, '')}@Tasomi.com`;
       }
 
       const { data, error: signError } = await supabase.auth.signUp({
@@ -109,8 +109,8 @@ export default function SignupPage() {
       justifyContent: 'center',
     }}>
       <style>{`
-        @media (min-width: 768px) { .drisyamn-top { padding-top: 48px !important; } }
-        @media (max-width: 767px) { .drisyamn-top { padding-top: 56px !important; } }
+        @media (min-width: 768px) { .Tasomi-top { padding-top: 48px !important; } }
+        @media (max-width: 767px) { .Tasomi-top { padding-top: 56px !important; } }
         input::placeholder { color: #8A7D6B; }
       `}</style>
 
@@ -125,7 +125,7 @@ export default function SignupPage() {
         boxSizing: 'border-box',
       }}>
 
-        <div className="drisyamn-top" style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingTop: '48px' }}>
+        <div className="Tasomi-top" style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingTop: '48px' }}>
           <h1 style={{
             fontFamily: 'Georgia, serif',
             fontSize: 'clamp(42px, 11vw, 56px)',
@@ -136,7 +136,7 @@ export default function SignupPage() {
             backgroundClip: 'text',
             margin: '0',
           }}>
-            Drisyamn
+            Tasomi
           </h1>
         </div>
 

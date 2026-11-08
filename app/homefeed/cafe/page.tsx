@@ -14,7 +14,7 @@ const DUMMY_CAFES: Cafe[] = [
 ];
 
 const DUMMY_ADS: Ad[] = [
-  { id: 'ad1', title: 'Get 20% OFF on First Order', desc: 'Order from Drisyamn partner cafes', image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800', cta_text: 'Order Now', cta_link: '/offers' },
+  { id: 'ad1', title: 'Get 20% OFF on First Order', desc: 'Order from Tasomi partner cafes', image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800', cta_text: 'Order Now', cta_link: '/offers' },
   { id: 'ad2', title: 'Promote Your Cafe Here', desc: 'Reach 10k+ customers daily', image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800', cta_text: 'Advertise', cta_link: '/advertise' },
 ];
 
@@ -82,7 +82,7 @@ export default function CafePage() {
         `}</style>
 
         <div className="hh-top">
-          <div className="hh-logo" onClick={() => router.push('/homefeed')}>Drisyamn</div>
+          <div className="hh-logo" onClick={() => router.push('/homefeed')}>Tasomi</div>
           <div className="hh-nav">
             <div className="nav-item" onClick={() => router.push('/homefeed')}><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3z"/></svg>Home</div>
             <div className="nav-item" onClick={() => router.push('/homefeed/messages')}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 10h8M8 14h4M21 12c0 4-3.5 7-9 7-1 0-2 0-3-.4L3 20l1.5-4.5C3.5 13.9 3 13 3 12c0-5 4-9 9-9s9 4 9 9z"/></svg>Message</div>

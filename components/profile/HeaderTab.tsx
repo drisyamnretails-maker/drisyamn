@@ -97,7 +97,7 @@ export default function HeaderTab({ profileId }: { profileId?: string }) {
             fontFamily: 'Georgia, serif', fontSize: '32px', fontWeight: '400', margin: 0,
             background: 'linear-gradient(90deg, #2D2415 0%, #5A4A32 30%, #8C6F3A 65%, #B89B5E 100%)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-          }}>Drisyamn.</h1>
+          }}>Tasomi.</h1>
           <div style={{ display: 'flex', gap: 10, position: 'relative' }}>
             <div onClick={()=>router.push(profileId ? `/messages/${profileId}` : '/messages')} style={{ width: 40, height: 40, borderRadius: '50%', background: '#FFFFFF', border: '1px solid #D9C9A8', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
               <MessageCircle size={18} color="#2D2415" />

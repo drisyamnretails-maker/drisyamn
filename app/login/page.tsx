@@ -31,7 +31,7 @@ export default function LoginPage() {
         if (profile?.email) {
           emailToLogin = profile.email;
         } else {
-          emailToLogin = `${phone.replace(/\+/g, '')}@drisyamn.com`;
+          emailToLogin = `${phone.replace(/\+/g, '')}@Tasomi.com`;
         }
       }
       const { error } = await supabase.auth.signInWithPassword({ email: emailToLogin.toLowerCase(), password });
@@ -54,8 +54,8 @@ export default function LoginPage() {
       justifyContent: 'center',
     }}>
       <style>{`
-        @media (min-width: 768px) { .drisyamn-top { padding-top: 48px !important; } }
-        @media (max-width: 767px) { .drisyamn-top { padding-top: 56px !important; } }
+        @media (min-width: 768px) { .Tasomi-top { padding-top: 48px !important; } }
+        @media (max-width: 767px) { .Tasomi-top { padding-top: 56px !important; } }
         input::placeholder { color: #8A7D6B; }
       `}</style>
 
@@ -70,7 +70,7 @@ export default function LoginPage() {
         boxSizing: 'border-box',
       }}>
 
-        <div className="drisyamn-top" style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingTop: '48px' }}>
+        <div className="Tasomi-top" style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingTop: '48px' }}>
           <h1 style={{
             fontFamily: 'Georgia, serif',
             fontSize: 'clamp(42px, 11vw, 56px)',
@@ -81,7 +81,7 @@ export default function LoginPage() {
             backgroundClip: 'text',
             margin: '0',
           }}>
-            Drisyamn
+            Tasomi
           </h1>
         </div>
 

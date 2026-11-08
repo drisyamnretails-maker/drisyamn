@@ -1,7 +1,7 @@
 // lib/theme.ts - LOCKED THEME - Do not change
 export const THEME = {
-  // Drisyamn Logo - Welcome page exact gradient
-  drisyamn: {
+  // Tasomi Logo - Welcome page exact gradient
+  Tasomi: {
     gradient: 'linear-gradient(90deg, #2D2415 0%, #5A4A32 30%, #8C6F3A 65%, #B89B5E 100%)',
     solid: '#2D2415',
   },

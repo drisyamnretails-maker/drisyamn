@@ -23,8 +23,8 @@ export default function OnboardingPage() {
       if (user) {
         await supabase.from('profiles').update({ account_type: selected }).eq('id', user.id);
       }
-      localStorage.setItem('drisyamn_has_account', 'true');
-      localStorage.setItem('drisyamn_account_type', selected);
+      localStorage.setItem('Tasomi_has_account', 'true');
+      localStorage.setItem('Tasomi_account_type', selected);
       router.push('/profile/create');
     } catch {
       router.push('/profile/create');
@@ -72,7 +72,7 @@ export default function OnboardingPage() {
             backgroundClip: 'text',
             margin: '0',
           }}>
-            Drisyamn
+            Tasomi
           </h1>
         </div>
 
@@ -90,7 +90,7 @@ export default function OnboardingPage() {
             margin: '0',
             textAlign: 'center',
           }}>
-            How will you use<br />Drisyamn?
+            How will you use<br />Tasomi?
           </h2>
           <div style={{ height: '14px' }} />
           <p style={{
@@ -102,7 +102,7 @@ export default function OnboardingPage() {
             textAlign: 'center',
             maxWidth: '310px'
           }}>
-            Choose your path. Whether you discover, sell, or create — Drisyamn adapts to you.
+            Choose your path. Whether you discover, sell, or create — Tasomi adapts to you.
           </p>
         </div>
 
