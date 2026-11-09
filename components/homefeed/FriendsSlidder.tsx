@@ -11,13 +11,6 @@ type Profile = {
   business_type: string;
 };
 
-const FALLBACK_IMGS = [
-  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400",
-  "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400",
-  "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400",
-  "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400",
-];
-
 export default function FriendsSlidder() {
   const router = useRouter();
   const [list, setList] = useState<Profile[]>([]);
@@ -44,13 +37,16 @@ export default function FriendsSlidder() {
         setFollowing(new Set(followedIds));
 
         // 3. SAFE EXCLUDE LOGIC
+        // ✅ FIX - Sahi columns. Pehle facility / deals_with select kar raha tha jo table me hai hi nahi
         let query = supabase
           .from('profiles')
-          .select('id, business_name, facility, deals_with, cover_url, business_type')
+          .select('id, business_name, name, full_name, username, bio, facilities, cover_url, avatar_url, business_type, offerings_type')
+          .eq('is_active', true)
           .limit(15);
 
         if (followedIds.length > 0) {
-          query = query.filter('id', 'not.in', `(${followedIds.join(',')})`);
+          // ✅ FIX - .filter('id','not.in','(...)') kabhi-kabhi UUID me fail hota hai, .not() safe hai
+          query = query.not('id', 'in', `(${followedIds.join(',')})`);
         }
         query = query.neq('id', user.id);
 
@@ -61,10 +57,11 @@ export default function FriendsSlidder() {
         } else if (data) {
           const mapped: Profile[] = data.map((d: any) => ({
             id: d.id,
-            business_name: d.business_name || d.full_name || d.username || 'User',
-            facility: d.facility || d.deals_with || 'General',
+            business_name: d.business_name || d.name || d.full_name || d.username || 'User',
+            // ✅ FIX - facilities array ya bio se, General nahi
+            facility: Array.isArray(d.facilities) && d.facilities.length > 0 ? d.facilities.join(', ') : (d.bio || 'General'),
             cover_url: d.cover_url || d.avatar_url || '',
-            business_type: d.business_type || 'personal',
+            business_type: d.business_type || d.offerings_type || 'personal',
           }));
           setList(mapped);
         }
@@ -149,14 +146,15 @@ export default function FriendsSlidder() {
           <span className="fs-seeall" onClick={() => router.push('/people')}>See all</span>
         </div>
         <div className="fs-slider">
-          {list.map((p, idx) => {
+          {list.map((p) => {
             const isFollowing = following.has(p.id);
             return (
               <div key={p.id} className="fs-card" onClick={() => router.push(`/profile/${p.id}`)}>
                 <div className="fs-img-wrap">
                   {p.cover_url ? (
+                    // ✅ FIX - onError me fake Unsplash image nahi, broken image ko hide karke Initial dikhayenge
                     <img src={p.cover_url} className="fs-img" alt={p.business_name} onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).src = FALLBACK_IMGS[idx % FALLBACK_IMGS.length];
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
                     }} />
                   ) : (
                     <span className="fs-initial">{p.business_name.charAt(0).toUpperCase()}</span>

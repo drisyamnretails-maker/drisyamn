@@ -2,200 +2,410 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { User, Briefcase, Sparkles, Camera, Plus, X, Loader2 } from 'lucide-react';
-import ProfileTypeSelector from '@/components/ProfileTypeSelector';
 
-type Role = 'personal' | 'business' | 'creator';
-type OfferingType = 'retail' | 'cafe' | 'hotel' | 'architect' | 'service' | 'media' | 'vlogger';
+type AllType = 'personal' | 'retail' | 'cafe' | 'hotel' | 'architect' | 'service' | 'media' | 'vlogger';
 
-const InputField = ({ label, placeholder, value, onChange, textarea = false }: any) => (
-  <div style={{ width: '100%', marginBottom: '14px' }}>
-    <label style={{ fontFamily: 'Georgia', fontSize: '13px', color: '#5C4A32', marginBottom: '6px', display: 'block', fontWeight: 500 }}>{label}</label>
-    {textarea ? (
-      <textarea placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} style={{ width: '100%', minHeight: '84px', padding: '14px', borderRadius: '12px', border: '1px solid #D9C9A8', background: '#FFFFFF', fontFamily: 'Georgia', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-    ) : (
-      <input placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} style={{ width: '100%', height: '48px', padding: '0 14px', borderRadius: '12px', border: '1px solid #D9C9A8', background: '#FFFFFF', fontFamily: 'Georgia', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
-    )}
-  </div>
-);
+const ALL_TYPES: { id: AllType; title: string; subtitle: string }[] = [
+  { id: 'personal', title: 'Personal', subtitle: 'you, profile' },
+  { id: 'retail', title: 'Retail', subtitle: 'store, shops' },
+  { id: 'cafe', title: 'Cafe', subtitle: 'restaurant, foods' },
+  { id: 'hotel', title: 'Hotel', subtitle: 'rooms, stays' },
+  { id: 'architect', title: 'Architect', subtitle: 'interior, exterior' },
+  { id: 'service', title: 'Service', subtitle: 'teacher, doctor' },
+  { id: 'media', title: 'Media', subtitle: 'news, media' },
+  { id: 'vlogger', title: 'Vlogger', subtitle: 'vlogs, videos' },
+];
 
-const RoleCard = ({ id, title, Icon, active, onClick }: any) => (
-  <button onClick={onClick} style={{ flex: 1, padding: '14px 10px', borderRadius: '12px', border: `1px solid ${active ? '#C8A86A' : '#D9C9A8'}`, background: active ? '#FFFFFF' : '#F3EBD9', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', cursor: 'pointer', boxShadow: active ? '0 6px 16px rgba(200,168,106,0.2)' : 'none' }}>
-    <Icon size={20} color={active ? '#2D2415' : '#8A7D6B'} />
-    <span style={{ fontFamily: 'Georgia', fontSize: '13px', fontWeight: 600, color: '#121212' }}>{title}</span>
-  </button>
-);
+// ✅ TYPE -> ROLE MAP - Jo select kiya, usi hisaab se role banega
+const TYPE_TO_ROLE: Record<AllType, 'personal' | 'business' | 'creator'> = {
+  personal: 'personal',
+  retail: 'business',
+  cafe: 'business',
+  hotel: 'business',
+  architect: 'business',
+  service: 'business',
+  media: 'creator',
+  vlogger: 'creator',
+};
+
+// ✅ TYPE -> ROUTE MAP - Personal alag, baaki sab /profile
+const TYPE_TO_ROUTE: Record<AllType, string> = {
+  personal: '/personalprofile',
+  retail: '/profile',
+  cafe: '/profile',
+  hotel: '/profile',
+  architect: '/profile',
+  service: '/profile',
+  media: '/profile',
+  vlogger: '/profile',
+};
 
 export default function CreateProfilePage() {
   const router = useRouter();
-  const [role, setRole] = useState<Role>('personal');
-  const [offeringsType, setOfferingsType] = useState<OfferingType>('retail');
+  const [selectedType, setSelectedType] = useState<AllType>('personal');
+  const [name, setName] = useState('');
+  const [contact, setContact] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [press, setPress] = useState(false);
-  const [uploading, setUploading] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [f1, setF1] = useState(false);
+  const [f2, setF2] = useState(false);
 
-  const [personal, setPersonal] = useState({
-    name: '', dob: '', address: '', bio: '', hobby: '',
-    dpFile: null as File | null, dpPreview: '',
-    coverFile: null as File | null, coverPreview: '',
-  });
+  const isPersonal = selectedType === 'personal';
 
-  const [business, setBusiness] = useState({
-    businessName: '', address: '', contact: '', dealsIn: '', aboutUs: '', ourStories: '', whyChooseUs: '',
-    coverFiles: [] as File[], coverPreviews: [] as string[],
-  });
-
+  // ✅ FIX - Purana data offerings_type se load hoga, taaki wahi type selected dikhe
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
       if (data) {
-        if (data.profile_role) setRole(data.profile_role);
-        if (data.offerings_type) setOfferingsType(data.offerings_type);
-        setPersonal(p => ({ ...p, name: data.name || '', dob: data.dob || '', address: data.address || '', bio: data.bio || '', hobby: data.hobby || '', dpPreview: data.avatar_url || '', coverPreview: data.cover_url || '' }));
-        setBusiness(b => ({ ...b, businessName: data.business_name || '', address: data.address || '', contact: data.contact || '', dealsIn: data.deals_in || '', aboutUs: data.about_us || '', ourStories: data.our_stories || '', whyChooseUs: data.why_choose_us || '', coverPreviews: data.cover_urls || (data.cover_url ? [data.cover_url] : []) }));
+        if (data.offerings_type) {
+          setSelectedType(data.offerings_type as AllType);
+        } else if (data.profile_role === 'personal') {
+          setSelectedType('personal');
+        }
+        setName(data.business_name || data.name || data.full_name || '');
+        setContact(data.contact || data.phone || '');
       }
     };
     load();
   }, []);
 
-  const uploadFile = async (file: File, bucket: 'avatars' | 'covers', userId: string) => {
-    const ext = file.name.split('.').pop() || 'jpg';
-    const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
-    const { error } = await supabase.storage.from(bucket).upload(fileName, file, { cacheControl: '3600', upsert: true });
-    if (error) throw error;
-    const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
-    return data.publicUrl;
-  };
+  // ✅ FIX - ROUTE + SUPABASE - Jo select kiya, wahi save hoga + wahi route khulega
+  const handleCreate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setError('');
+    if (!name.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+    if (!contact.trim()) {
+      setError('Please enter contact number');
+      return;
+    }
 
-  const handleCreate = async () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
 
-      let avatarUrl = personal.dpPreview.startsWith('blob:') ? '' : personal.dpPreview;
-      let coverUrl = personal.coverPreview.startsWith('blob:') ? '' : personal.coverPreview;
-      let coverUrls: string[] = business.coverPreviews.filter(p => p.startsWith('http'));
-
-      if (role === 'personal') {
-        if (personal.dpFile) { setUploading('DP'); avatarUrl = await uploadFile(personal.dpFile, 'avatars', user.id); }
-        if (personal.coverFile) { setUploading('cover'); coverUrl = await uploadFile(personal.coverFile, 'covers', user.id); }
-      }
-      if (role === 'business' || role === 'creator') {
-        if (business.coverFiles.length > 0) {
-          setUploading('covers');
-          const uploaded: string[] = [];
-          for (const file of business.coverFiles) { const url = await uploadFile(file, 'covers', user.id); uploaded.push(url); }
-          coverUrls = [...business.coverPreviews.filter(p => p.startsWith('http')), ...uploaded].slice(0, 3);
-        }
-      }
+      const role = TYPE_TO_ROLE[selectedType];
 
       const payload: any = {
         id: user.id,
         profile_role: role,
-        offerings_type: role === 'personal' ? 'retail' : offeringsType, // <-- YAHAN LINK ADD HUA
-        address: role === 'personal' ? personal.address : business.address,
+        offerings_type: selectedType,
+        name: name.trim(),
+        full_name: name.trim(),
+        contact: contact.trim(),
+        phone: contact.trim(),
         updated_at: new Date().toISOString(),
       };
 
-      if (role === 'personal') {
-        payload.name = personal.name; payload.dob = personal.dob; payload.bio = personal.bio; payload.hobby = personal.hobby;
-        payload.avatar_url = avatarUrl; payload.cover_url = coverUrl; payload.cover_urls = [];
+      if (isPersonal) {
+        payload.business_name = null;
       } else {
-        payload.business_name = business.businessName; payload.name = business.businessName; payload.contact = business.contact;
-        payload.deals_in = business.dealsIn; payload.about_us = business.aboutUs; payload.our_stories = business.ourStories;
-        payload.why_choose_us = business.whyChooseUs; payload.cover_urls = coverUrls; payload.cover_url = coverUrls[0] || null;
+        payload.business_name = name.trim();
       }
 
       const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
       if (error) throw error;
 
       localStorage.setItem('Tasomi_has_account', 'true');
-      router.push('/profile');
-    } catch (err: any) { alert('Error: ' + err.message); } finally { setLoading(false); setUploading(null); }
+      localStorage.setItem('Tasomi_profile_type', selectedType);
+
+      // ✅ YAHI MAIN LOGIC HAI - Personal -> /personalprofile, Baaki -> /profile
+      router.push(TYPE_TO_ROUTE[selectedType]);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div style={{ minHeight: '100dvh', background: '#F6F1E8', display: 'flex', justifyContent: 'center' }}>
-      <div style={{ width: '100%', maxWidth: '440px', padding: '24px 24px 32px', boxSizing: 'border-box' }}>
-        <h1 style={{ fontFamily: 'Georgia', fontSize: '28px', fontWeight: 600, textAlign: 'center', margin: '12px 0 4px 0' }}>Create Profile</h1>
-        <p style={{ fontFamily: 'Georgia', fontSize: '14px', color: '#6B5D4B', textAlign: 'center', marginBottom: '20px' }}>One profile, works everywhere</p>
+  // Header ka Profile button bhi type ke hisaab se jaye
+  const goToMyProfile = () => {
+    router.push(TYPE_TO_ROUTE[selectedType]);
+  };
 
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
-          <RoleCard id="personal" title="Personal" Icon={User} active={role==='personal'} onClick={()=>setRole('personal')} />
-          <RoleCard id="business" title="Business" Icon={Briefcase} active={role==='business'} onClick={()=>setRole('business')} />
-          <RoleCard id="creator" title="Creator" Icon={Sparkles} active={role==='creator'} onClick={()=>setRole('creator')} />
+  const inputStyle = (focused: boolean) => ({
+    width: '100%',
+    height: '60px',
+    borderRadius: '14px',
+    border: `1px solid ${focused ? '#5A7A6A' : '#E5E5E5'}`,
+    backgroundColor: '#FFFFFF',
+    display: 'flex' as const,
+    alignItems: 'center' as const,
+    padding: '0 20px',
+    transition: 'all 0.2s ease',
+    boxShadow: focused ? '0 8px 24px rgba(90,122,106,0.12)' : '0 2px 8px rgba(0,0,0,0.04)',
+    transform: focused ? 'scale(1.01)' : 'scale(1)',
+    boxSizing: 'border-box' as const
+  });
+
+  const navLinks = [
+    { label: 'Explore', path: '/homefeed' },
+    { label: 'Community', path: '/homefeed' },
+    { label: 'Businesses', path: '/homefeed' },
+    { label: 'About', path: '/' },
+  ];
+
+  return (
+    <div style={{
+      minHeight: '100dvh',
+      width: '100%',
+      maxWidth: '100vw',
+      overflowX: 'hidden',
+      backgroundColor: '#FFFFFF',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      boxSizing: 'border-box',
+    }}>
+      <style>{`
+        * { box-sizing: border-box; }
+        html, body { overflow-x: hidden !important; max-width: 100vw !important; }
+        @media (min-width: 768px) {
+          .nav-desktop { display: flex !important; }
+          .nav-hamburger { display: none !important; }
+          .header-inner { max-width: 1100px !important; }
+          .desktop-wrap { max-width: 1100px !important; flex-direction: row !important; align-items: stretch !important; gap: 0 !important; padding: 0 20px !important; }
+          .desktop-left { display: flex !important; }
+          .desktop-form { max-width: 520px !important; padding: 60px 40px !important; justify-content: center !important; }
+        }
+        @media (max-width: 767px) {
+          .nav-desktop { display: none !important; }
+          .nav-hamburger { display: flex !important; }
+          .desktop-wrap { width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+          .desktop-form { width: 100% !important; max-width: 100% !important; padding: 0 20px 40px 20px !important; }
+        }
+        input::placeholder { color: #9A9A9A; }
+        .type-slider::-webkit-scrollbar { display: none; }
+        .type-slider { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+
+      {/* ===== HEADER - Signup jaisa ===== */}
+      <header style={{
+        width: '100%',
+        maxWidth: '100vw',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        backgroundColor: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(10px)',
+        borderBottom: '1px solid #F2ECE3',
+        boxSizing: 'border-box',
+      }}>
+        <div className="header-inner" style={{
+          width: '100%',
+          maxWidth: '440px',
+          margin: '0 auto',
+          padding: '14px 20px',
+          boxSizing: 'border-box',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: '28px', fontWeight: '800', letterSpacing: '-0.02em', color: '#5A7A6A', padding: 0 }}>
+            Tasomi
+          </button>
+          <nav className="nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
+            {navLinks.map((link) => (
+              <button key={link.label} onClick={() => router.push(link.path)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: '500', color: '#333333' }}>
+                {link.label}
+              </button>
+            ))}
+            <button onClick={goToMyProfile} style={{ backgroundColor: '#5A7A6A', color: '#FFFFFF', border: 'none', borderRadius: '999px', padding: '9px 20px', fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
+              Profile
+            </button>
+          </nav>
+          <button className="nav-hamburger" onClick={() => setMenuOpen(!menuOpen)} style={{ display: 'none', background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#111', padding: '4px 8px' }}>
+            {menuOpen ? '✕' : '☰'}
+          </button>
+        </div>
+        {menuOpen && (
+          <div style={{ width: '100%', maxWidth: '440px', margin: '0 auto', padding: '8px 20px 18px 20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '4px', backgroundColor: '#fff', borderTop: '1px solid #F2ECE3' }}>
+            {navLinks.map((link) => (
+              <button key={link.label} onClick={() => { setMenuOpen(false); router.push(link.path); }} style={{ background: 'none', border: 'none', textAlign: 'left', padding: '12px 8px', fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: '500', color: '#222', cursor: 'pointer', borderBottom: '1px solid #F2ECE3' }}>
+                {link.label}
+              </button>
+            ))}
+            <button onClick={() => { setMenuOpen(false); goToMyProfile(); }} style={{ marginTop: '10px', backgroundColor: '#5A7A6A', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px', fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>
+              Profile
+            </button>
+          </div>
+        )}
+      </header>
+
+      {/* ===== DESKTOP WRAP - Signup jaisa ===== */}
+      <div className="desktop-wrap" style={{
+        width: '100%',
+        maxWidth: '440px',
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        boxSizing: 'border-box',
+      }}>
+
+        {/* LEFT - Sirf Desktop */}
+        <div className="desktop-left" style={{
+          display: 'none',
+          flex: 1,
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '60px 40px 60px 0',
+          boxSizing: 'border-box',
+        }}>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: '64px', lineHeight: '0.95', letterSpacing: '-0.03em', color: '#0A0A0A', margin: 0 }}>
+            Apna Business,<br />
+            <span style={{ color: '#5A7A6A' }}>Apni Pehchan.</span>
+          </h1>
+          <p style={{ fontFamily: 'Georgia, serif', fontSize: '18px', lineHeight: '1.6', color: '#5C5C5C', maxWidth: '420px', marginTop: '20px' }}>
+            Join your local community. Let your city discover you.
+          </p>
+          <div style={{ width: '190px', height: '1px', marginTop: '24px', background: 'linear-gradient(90deg, transparent 0%, #E8DCC3 20%, #5A7A6A 50%, #E8DCC3 80%, transparent 100%)' }} />
         </div>
 
-        {/* --- YAHAN NAYA COMPONENT ADD HUA --- */}
-        {(role === 'business' || role === 'creator') && (
-          <div style={{ marginBottom: '20px', marginLeft: '-12px', marginRight: '-12px' }}>
-            <ProfileTypeSelector 
-              currentType={offeringsType} 
-              showSaveButton={false} 
-              onSelected={(type) => setOfferingsType(type)} 
-            />
-          </div>
-        )}
+        {/* ===== FORM ===== */}
+        <form onSubmit={handleCreate} className="desktop-form" style={{
+          width: '100%',
+          maxWidth: '440px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '0 20px 40px 20px',
+          boxSizing: 'border-box',
+        }}>
+          <div style={{ height: '36px' }} />
 
-        {role === 'personal' && (
-          <div>
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-              <label style={{ flex: 1, height: '110px', borderRadius: '12px', border: '1px dashed #C8A86A', background: personal.coverPreview ? `url(${personal.coverPreview}) center/cover` : '#F3EBD9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden' }}>
-                {!personal.coverPreview && <><Camera size={20} color="#8A7D6B" /><span style={{ fontSize: '11px', fontFamily: 'Georgia', marginTop: '4px' }}>Cover</span></>}
-                <input type="file" accept="image/*" hidden onChange={e=>{ const f=e.target.files?.[0]; if(f) setPersonal(s=>({...s, coverFile:f, coverPreview:URL.createObjectURL(f)}))}} />
-              </label>
-              <label style={{ width: '110px', height: '110px', borderRadius: '50%', border: '1px dashed #C8A86A', background: personal.dpPreview ? `url(${personal.dpPreview}) center/cover` : '#F3EBD9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden' }}>
-                {!personal.dpPreview && <><Camera size={20} color="#8A7D6B" /><span style={{ fontSize: '11px', fontFamily: 'Georgia', marginTop: '4px' }}>DP</span></>}
-                <input type="file" accept="image/*" hidden onChange={e=>{ const f=e.target.files?.[0]; if(f) setPersonal(s=>({...s, dpFile:f, dpPreview:URL.createObjectURL(f)}))}} />
-              </label>
+          <h2 style={{
+            fontFamily: 'Georgia, Times New Roman, serif',
+            fontSize: 'clamp(42px, 10vw, 58px)',
+            fontWeight: '500',
+            lineHeight: '0.88',
+            letterSpacing: '-0.03em',
+            color: '#0A0A0A',
+            margin: '0',
+            textAlign: 'center',
+          }}>
+            Create<br />Profile
+          </h2>
+
+          <div style={{ height: '16px' }} />
+          <p style={{ fontFamily: 'Georgia, serif', fontSize: '15px', lineHeight: '1.6', color: '#5C5C5C', maxWidth: '320px', margin: '0 auto', textAlign: 'center' }}>
+            One profile, works everywhere.
+          </p>
+
+          <div style={{ height: '32px' }} />
+
+          {/* ===== 1. SELECT YOUR ACCOUNT TYPE ===== */}
+          <p style={{ width: '100%', fontFamily: 'Inter, sans-serif', fontSize: '14px', fontWeight: 600, color: '#111', margin: '0 0 12px 0', textAlign: 'left' }}>
+            Select your account type
+          </p>
+
+          <div className="type-slider" style={{
+            width: '100%',
+            display: 'flex',
+            gap: '10px',
+            overflowX: 'auto',
+            scrollSnapType: 'x mandatory',
+            padding: '4px 2px 12px 2px',
+            boxSizing: 'border-box',
+          }}>
+            {ALL_TYPES.map((t) => {
+              const active = selectedType === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setSelectedType(t.id)}
+                  style={{
+                    minWidth: '112px',
+                    width: '112px',
+                    flexShrink: 0,
+                    scrollSnapAlign: 'start',
+                    padding: '14px 10px 12px 10px',
+                    borderRadius: '12px',
+                    border: `1px solid ${active ? '#5A7A6A' : '#E5E5E5'}`,
+                    background: active ? '#EFF5F0' : '#FFFFFF',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '5px',
+                    cursor: 'pointer',
+                    boxShadow: active ? '0 6px 16px rgba(90,122,106,0.15)' : '0 2px 8px rgba(0,0,0,0.04)',
+                    position: 'relative',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {active && (
+                    <span style={{ position: 'absolute', top: '7px', right: '7px', width: '18px', height: '18px', borderRadius: '50%', backgroundColor: '#5A7A6A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700 }}>✓</span>
+                  )}
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '13px', fontWeight: 600, color: active ? '#5A7A6A' : '#111' }}>{t.title}</span>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: '10px', color: active ? '#4A6554' : '#8A8A8A', textAlign: 'center', lineHeight: '1.2' }}>{t.subtitle}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p style={{ fontSize: '11px', fontFamily: 'Inter, sans-serif', color: '#9A9A9A', textAlign: 'center', margin: '0 0 24px 0' }}>← Swipe karke apna type chuno →</p>
+
+          {/* ===== 2. NAME ===== */}
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={inputStyle(f1)}>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onFocus={() => setF1(true)}
+                onBlur={() => setF1(false)}
+                placeholder={isPersonal ? 'Your Name' : 'Business / Establishment Name'}
+                style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '17px', fontFamily: 'Inter, sans-serif', color: '#111' }}
+              />
             </div>
-            <InputField label="Name" placeholder="Your full name" value={personal.name} onChange={(v:string)=>setPersonal(s=>({...s, name:v}))} />
-            <InputField label="Date of birth" placeholder="DD/MM/YYYY" value={personal.dob} onChange={(v:string)=>setPersonal(s=>({...s, dob:v}))} />
-            <InputField label="Address" placeholder="Your city, area" value={personal.address} onChange={(v:string)=>setPersonal(s=>({...s, address:v}))} />
-            <InputField label="Bio" placeholder="Tell something about you" value={personal.bio} onChange={(v:string)=>setPersonal(s=>({...s, bio:v}))} textarea />
-            <InputField label="Hobby" placeholder="Photography, Travel, Food..." value={personal.hobby} onChange={(v:string)=>setPersonal(s=>({...s, hobby:v}))} />
-          </div>
-        )}
 
-        {(role === 'business' || role === 'creator') && (
-          <div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontFamily: 'Georgia', fontSize: '13px', color: '#5C4A32', marginBottom: '6px', display: 'block' }}>Cover - 3 images sliding {business.coverPreviews.length}/3</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                {[0,1,2].map(i=>{
-                  const preview = business.coverPreviews[i];
-                  return (
-                    <div key={i} style={{ flex:1, height:'90px', borderRadius:'12px', border:'1px dashed #C8A86A', background: preview ? `url(${preview}) center/cover` : '#F3EBD9', display:'flex', alignItems:'center', justifyContent:'center', position:'relative', overflow:'hidden' }}>
-                      {!preview ? (
-                        <label style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-                          <Plus size={18} color="#8A7D6B" /><span style={{ fontSize:'10px' }}>Image {i+1}</span>
-                          <input type="file" accept="image/*" hidden onChange={e=>{ const files=Array.from(e.target.files||[]); if(business.coverPreviews.length+files.length>3){alert('Sirf 3'); return;} const urls=files.map(f=>URL.createObjectURL(f)); setBusiness(s=>({...s, coverFiles:[...s.coverFiles, ...files], coverPreviews:[...s.coverPreviews, ...urls]}))}} multiple />
-                        </label>
-                      ) : (
-                        <button type="button" onClick={()=>setBusiness(s=>({...s, coverPreviews:s.coverPreviews.filter((_,idx)=>idx!==i), coverFiles:s.coverFiles.filter((_,idx)=>idx!==i)}))} style={{ position:'absolute', top:'4px', right:'4px', background:'rgba(0,0,0,0.6)', borderRadius:'50%', width:'20px', height:'20px', display:'flex', alignItems:'center', justifyContent:'center', border:'none', cursor:'pointer' }}><X size={12} color="#fff" /></button>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+            {/* ===== 3. CONTACTS ===== */}
+            <div style={inputStyle(f2)}>
+              <input
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+                onFocus={() => setF2(true)}
+                onBlur={() => setF2(false)}
+                placeholder="Contact - Phone / WhatsApp"
+                inputMode="tel"
+                style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', fontSize: '17px', fontFamily: 'Inter, sans-serif', color: '#111' }}
+              />
             </div>
-            <InputField label="Establishments name/Service portfolio" placeholder=" Dr Sharma clinics " value={business.businessName} onChange={(v:string)=>setBusiness(s=>({...s, businessName:v}))} />
-            <InputField label="Address" placeholder="Full address" value={business.address} onChange={(v:string)=>setBusiness(s=>({...s, address:v}))} />
-            <InputField label="Contact" placeholder="Phone / WhatsApp" value={business.contact} onChange={(v:string)=>setBusiness(s=>({...s, contact:v}))} />
-            <InputField label="Specializes in / Deals in" placeholder="Coffee, Bakery, Rooms..." value={business.dealsIn} onChange={(v:string)=>setBusiness(s=>({...s, dealsIn:v}))} />
-            <InputField label="About us" placeholder="Your business story" value={business.aboutUs} onChange={(v:string)=>setBusiness(s=>({...s, aboutUs:v}))} textarea />
-            <InputField label="Our stories" placeholder="Achievements, journey..." value={business.ourStories} onChange={(v:string)=>setBusiness(s=>({...s, ourStories:v}))} textarea />
-            <InputField label="Why people choose us" placeholder="Quality, Service, Location..." value={business.whyChooseUs} onChange={(v:string)=>setBusiness(s=>({...s, whyChooseUs:v}))} textarea />
           </div>
-        )}
 
-        <div style={{ height: '20px' }} />
-        <button onMouseDown={()=>setPress(true)} onMouseUp={()=>setPress(false)} onMouseLeave={()=>setPress(false)} onTouchStart={()=>setPress(true)} onTouchEnd={()=>setPress(false)} onClick={handleCreate} disabled={loading} style={{ width:'100%', height:'58px', borderRadius:'14px', border:'1px solid #C8A86A', backgroundColor: press ? '#FFFFFF' : '#F3EBD9', color:'#2D2415', fontFamily:'Georgia', fontSize:'17px', fontWeight:500, cursor:'pointer', transform: press ? 'scale(0.97)' : 'scale(1)', transition:'all 0.18s', display:'flex', alignItems:'center', justifyContent:'center', gap:'8px' }}>
-          {loading ? <><Loader2 size={18} className="animate-spin" /> {uploading ? `Uploading ${uploading}...` : 'Creating...'}</> : 'Create Profile'}
-        </button>
+          {error && <p style={{ color: '#D64545', fontSize: '14px', marginTop: '14px', textAlign: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 600, width: '100%' }}>{error}</p>}
+
+          <div style={{ height: '20px' }} />
+
+          {/* ===== 4. CREATE ACCOUNT BUTTON ===== */}
+          <button
+            type="submit"
+            onMouseDown={() => setPress(true)} onMouseUp={() => setPress(false)} onMouseLeave={() => setPress(false)}
+            onTouchStart={() => setPress(true)} onTouchEnd={() => setPress(false)}
+            disabled={loading}
+            style={{
+              width: '100%', height: '60px', borderRadius: '14px',
+              border: 'none',
+              backgroundColor: press ? '#4A6554' : '#5A7A6A',
+              color: '#FFFFFF',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '18px', fontWeight: '600',
+              cursor: 'pointer',
+              transform: press ? 'scale(0.97)' : 'scale(1)',
+              transition: 'all 0.18s ease-out',
+              boxShadow: '0 10px 30px rgba(90,122,106,0.30), 0 2px 8px rgba(0,0,0,0.07)',
+              opacity: loading ? 0.7 : 1
+            }}>
+            {loading ? 'Creating...' : 'Create Account'}
+          </button>
+
+        </form>
       </div>
     </div>
   );

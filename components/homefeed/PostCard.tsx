@@ -8,7 +8,7 @@ import Link from 'next/link';
 export default function PostCard({ post, onDeleted }: { post: any, onDeleted?: () => void }) {
   const router = useRouter();
   const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
+  const [likeCount, setLikeCount] = useState(post?.like_count || 0);
   const [showMenu, setShowMenu] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [comments, setComments] = useState<any[]>([]);
@@ -17,6 +17,8 @@ export default function PostCard({ post, onDeleted }: { post: any, onDeleted?: (
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
+    setLikeCount(post?.like_count || 0);
+    setComments([]);
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         setCurrentUserId(data.user.id);
@@ -30,11 +32,10 @@ export default function PostCard({ post, onDeleted }: { post: any, onDeleted?: (
 
   const fetchComments = async () => {
     const { data: comms } = await supabase.from('post_comments').select('*').eq('post_id', post.id).order('created_at', { ascending: true });
-    if (!comms) { setComments([]); return; }
-    if (comms.length === 0) { setComments([]); return; }
-    const userIds = [...new Set(comms.map(c => c.user_id))];
+    if (!comms || comms.length === 0) { setComments([]); return; }
+    const userIds = [...new Set(comms.map((c: any) => c.user_id))];
     const { data: profs } = await supabase.from('profiles').select('id, username, avatar_url').in('id', userIds);
-    const merged = comms.map(c => ({ ...c, profiles: profs?.find(p => p.id === c.user_id) || { username: 'user' } }));
+    const merged = comms.map((c: any) => ({ ...c, profiles: profs?.find((p: any) => p.id === c.user_id) || { username: 'user' } }));
     setComments(merged);
   };
 
@@ -43,10 +44,10 @@ export default function PostCard({ post, onDeleted }: { post: any, onDeleted?: (
     if (!user) return;
     if (liked) {
       await supabase.from('post_likes').delete().eq('post_id', post.id).eq('user_id', user.id);
-      setLiked(false); setLikeCount(c => c - 1);
+      setLiked(false); setLikeCount((c: number) => c - 1);
     } else {
       await supabase.from('post_likes').insert({ post_id: post.id, user_id: user.id });
-      setLiked(true); setLikeCount(c => c + 1);
+      setLiked(true); setLikeCount((c: number) => c + 1);
       if (post.user_id !== user.id) await supabase.from('notifications').insert({ user_id: post.user_id, actor_id: user.id, post_id: post.id, type: 'like', message: 'liked your post' });
     }
   };
@@ -57,9 +58,14 @@ export default function PostCard({ post, onDeleted }: { post: any, onDeleted?: (
     if (!user) return;
     await supabase.from('post_comments').insert({ post_id: post.id, user_id: user.id, content: commentText });
     if (post.user_id !== user.id) await supabase.from('notifications').insert({ user_id: post.user_id, actor_id: user.id, post_id: post.id, type: 'comment', message: commentText.slice(0, 40) });
-    setCommentText("");
-    fetchComments();
-    setShowComments(true);
+    setCommentText(""); fetchComments(); setShowComments(true);
+  };
+
+  const handleSave = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    if (saved) { await supabase.from('saved_posts').delete().eq('post_id', post.id).eq('user_id', user.id); setSaved(false); }
+    else { await supabase.from('saved_posts').insert({ post_id: post.id, user_id: user.id }); setSaved(true); }
   };
 
   const handleDelete = async () => {
@@ -75,7 +81,7 @@ export default function PostCard({ post, onDeleted }: { post: any, onDeleted?: (
 
   return (
     <>
-      <div style={{ width: '100%', maxWidth: 720, margin: '0 auto 16px' }}>
+      <div style={{ width: '100%', maxWidth: '100%', margin: '0 auto 16px' }}>
         <div style={{ background: '#FFF', borderRadius: 20, border: '1px solid #EFE5D2', overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -112,12 +118,7 @@ export default function PostCard({ post, onDeleted }: { post: any, onDeleted?: (
             </div>
             <div style={{ display: 'flex', gap: 18 }}>
               <button onClick={() => setShowMenu(true)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><Send size={24} strokeWidth={1.8} /></button>
-              <button onClick={async () => {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
-                if (saved) { await supabase.from('saved_posts').delete().eq('post_id', post.id).eq('user_id', user.id); setSaved(false); }
-                else { await supabase.from('saved_posts').insert({ post_id: post.id, user_id: user.id }); setSaved(true); }
-              }} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><Bookmark size={24} fill={saved ? '#111' : 'none'} strokeWidth={1.8} /></button>
+              <button onClick={handleSave} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><Bookmark size={24} fill={saved ? '#111' : 'none'} strokeWidth={1.8} /></button>
             </div>
           </div>
 
@@ -134,7 +135,7 @@ export default function PostCard({ post, onDeleted }: { post: any, onDeleted?: (
             <div style={{ borderTop: '1px solid #F0E6D3', background: '#FFFEFB' }}>
               <div style={{ maxHeight: 240, overflowY: 'auto', padding: '10px 14px' }}>
                 {comments.length === 0 && <div style={{ fontSize: 13, color: '#999', textAlign: 'center', padding: 10 }}>No comments yet, be first!</div>}
-                {comments.map(c => (
+                {comments.map((c: any) => (
                   <div key={c.id} style={{ display: 'flex', gap: 8, padding: '6px 0' }}>
                     <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#F0E6D3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0, overflow: 'hidden' }}>
                       {c.profiles?.avatar_url ? <img src={c.profiles.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : (c.profiles?.username?.[0] || 'U')}
